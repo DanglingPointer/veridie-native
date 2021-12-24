@@ -168,7 +168,7 @@ cr::DetachedHandle SendEvent(JNIEnv * env, jint eventId, jobjectArray args)
    std::vector<std::string> arguments;
 
    size_t size = args ? env->GetArrayLength(args) : 0U;
-   for (auto i = 0; i < size; ++i) {
+   for (size_t i = 0; i < size; ++i) {
       auto str = static_cast<jstring>(env->GetObjectArrayElement(args, i));
       arguments.emplace_back(GetString(env, str));
    }

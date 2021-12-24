@@ -2,6 +2,7 @@
 #define DICE_ENGINE_HPP
 
 #include "dice/cast.hpp"
+#include <memory>
 
 namespace dice {
 

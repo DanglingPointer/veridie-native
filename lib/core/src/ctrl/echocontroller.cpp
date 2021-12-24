@@ -1,4 +1,6 @@
 #include "ctrl/controller.hpp"
+#include "dice/engine.hpp"
+#include "dice/serializer.hpp"
 #include "sign/cmd.hpp"
 #include "sign/commandmanager.hpp"
 #include "sign/commandpool.hpp"

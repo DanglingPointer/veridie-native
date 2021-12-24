@@ -3,6 +3,7 @@
 #include <list>
 #include <optional>
 #include <sstream>
+#include <unordered_set>
 #include <vector>
 
 #include "fakelogger.hpp"
@@ -95,11 +96,7 @@ public:
    MockTimerEngine()
       : m_processing(false)
    {}
-   ~MockTimerEngine()
-   {
-      while (!m_timers.empty())
-         FastForwardTime(1s);
-   }
+   ~MockTimerEngine() { ExhaustQueue(); }
 
    void FastForwardTime(std::chrono::seconds sec = 0s)
    {
@@ -119,7 +116,8 @@ public:
       for (const auto & t : m_timers)
          fprintf(stderr,
                  "- Timer scheduled in %lli ms\n",
-                 std::chrono::duration_cast<std::chrono::milliseconds>(t.time - m_now).count());
+                 (long long)std::chrono::duration_cast<std::chrono::milliseconds>(t.time - m_now)
+                    .count());
    }
 
    void operator()(std::function<void()> && task, std::chrono::milliseconds period)
@@ -127,6 +125,12 @@ public:
       //      fprintf(stderr, "Adding timer %d ms\n", (int)period.count());
       const auto timeToFire = m_now + period;
       m_timers.push_back({std::move(task), timeToFire});
+   }
+
+   void ExhaustQueue()
+   {
+      while (!m_timers.empty())
+         FastForwardTime(1s);
    }
 
 private:
@@ -191,8 +195,8 @@ protected:
       return ctrl;
    }
 
-   MockTimerEngine m_timer;
    MockProxy m_proxy;
+   MockTimerEngine m_timer;
 
    MockProxy * proxy;
    MockTimerEngine * timer;
@@ -494,6 +498,7 @@ TEST_F(ConnectingFixture, fatal_failure_when_both_discovery_and_listening_failed
    ASSERT_TRUE(fatalFailureText);
    EXPECT_EQ(cmd::ShowAndExit::ID, fatalFailureText->GetId());
    EXPECT_TRUE(logger.GetLastStateLine().empty());
+   timer->ExhaustQueue();
 }
 
 TEST_F(ConnectingFixture, no_fatal_failure_when_only_listening_failed)
@@ -746,33 +751,35 @@ TEST_F(ConnectingFixture, does_not_negotiate_with_disconnected)
    const char * expectedOffer = R"(<Offer round="2"><Mac>5c:b9:01:f8:b6:43</Mac></Offer>)";
    ASSERT_EQ(2, fsm::g_negotiationRound);
 
-   // local offer is being broadcast
-   {
+   // local offer is being broadcast, the order is compiler-dependent
+   std::vector<mem::pool_ptr<cmd::ICommand>> cmds;
+   for (int i = 0; i < 3; ++i) {
       auto [offer, id] = proxy->PopNextCommand();
       ASSERT_TRUE(offer);
       EXPECT_EQ(cmd::SendMessage::ID, offer->GetId());
       EXPECT_EQ(2U, offer->GetArgsCount());
       EXPECT_STREQ(expectedOffer, offer->GetArgAt(0).data());
-      EXPECT_STREQ("5c:b9:01:f8:b6:43", offer->GetArgAt(1).data());
+
+      cmds.push_back(std::move(offer));
       ctrl->OnCommandResponse(id, cmd::ICommand::OK);
    }
    {
-      auto [offer, id] = proxy->PopNextCommand();
-      ASSERT_TRUE(offer);
-      EXPECT_EQ(cmd::SendMessage::ID, offer->GetId());
-      EXPECT_EQ(2U, offer->GetArgsCount());
-      EXPECT_STREQ(expectedOffer, offer->GetArgAt(0).data());
-      EXPECT_STREQ("5c:b9:01:f8:b6:44", offer->GetArgAt(1).data());
-      ctrl->OnCommandResponse(id, cmd::ICommand::OK);
+      const auto it41 = std::find_if(cmds.cbegin(), cmds.cend(), [](const auto & offer) {
+         return offer->GetArgAt(1) == "5c:b9:01:f8:b6:41";
+      });
+      EXPECT_NE(cmds.cend(), it41);
    }
    {
-      auto [offer, id] = proxy->PopNextCommand();
-      ASSERT_TRUE(offer);
-      EXPECT_EQ(cmd::SendMessage::ID, offer->GetId());
-      EXPECT_EQ(2U, offer->GetArgsCount());
-      EXPECT_STREQ(expectedOffer, offer->GetArgAt(0).data());
-      EXPECT_STREQ("5c:b9:01:f8:b6:41", offer->GetArgAt(1).data());
-      ctrl->OnCommandResponse(id, cmd::ICommand::OK);
+      const auto it43 = std::find_if(cmds.cbegin(), cmds.cend(), [](const auto & offer) {
+         return offer->GetArgAt(1) == "5c:b9:01:f8:b6:43";
+      });
+      EXPECT_NE(cmds.cend(), it43);
+   }
+   {
+      const auto it44 = std::find_if(cmds.cbegin(), cmds.cend(), [](const auto & offer) {
+         return offer->GetArgAt(1) == "5c:b9:01:f8:b6:44";
+      });
+      EXPECT_NE(cmds.cend(), it44);
    }
    EXPECT_TRUE(proxy->NoCommands());
 }
@@ -823,14 +830,18 @@ protected:
    }
    void CheckLocalOffer(const char * expectedOffer)
    {
+      std::unordered_set<std::string> receiverMacs;
       for (auto it = std::crbegin(Peers()); it != std::crend(Peers()); ++it) {
          auto [offer, id] = proxy->PopNextCommand();
          ASSERT_TRUE(offer);
          EXPECT_EQ(cmd::SendMessage::ID, offer->GetId());
          EXPECT_EQ(2U, offer->GetArgsCount());
          EXPECT_STREQ(expectedOffer, offer->GetArgAt(0).data());
-         EXPECT_STREQ(it->mac.c_str(), offer->GetArgAt(1).data());
+         receiverMacs.template emplace(offer->GetArgAt(1));
          RespondOK(id);
+      }
+      for (const auto & device : Peers()) {
+         EXPECT_TRUE(receiverMacs.contains(device.mac));
       }
    }
 
@@ -1077,14 +1088,17 @@ TEST_F(P2R8, local_generator_responds_to_remote_and_local_requests)
       EXPECT_STREQ(Peers()[0].name.c_str(), showRequest->GetArgAt(3).data());
       RespondOK(showReqId);
 
-      const char * expectedResponse =
+      const char * expectedResponse1 =
          R"(<Response successCount="4" size="4" type="D6"><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val></Response>)";
+      const char * expectedResponse2 =
+         R"(<Response size="4" successCount="4" type="D6"><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val></Response>)";
       for (const auto & peer : Peers()) {
          auto [sendResponse, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendResponse);
          EXPECT_EQ(cmd::SendMessage::ID, sendResponse->GetId());
          EXPECT_EQ(2U, sendResponse->GetArgsCount());
-         EXPECT_STREQ(expectedResponse, sendResponse->GetArgAt(0).data());
+         EXPECT_TRUE(expectedResponse1 == sendResponse->GetArgAt(0) ||
+                     expectedResponse2 == sendResponse->GetArgAt(0));
          EXPECT_STREQ(peer.mac.c_str(), sendResponse->GetArgAt(1).data());
          RespondOK(id);
       }
@@ -1127,14 +1141,17 @@ TEST_F(P2R8, local_generator_responds_to_remote_and_local_requests)
          RespondOK(id);
       }
 
-      const char * expectedResponse =
+      const char * expectedResponse1 =
          R"(<Response successCount="0" size="2" type="D100"><Val>42</Val><Val>42</Val></Response>)";
+      const char * expectedResponse2 =
+         R"(<Response size="2" successCount="0" type="D100"><Val>42</Val><Val>42</Val></Response>)";
       for (const auto & peer : Peers()) {
          auto [sendResponse, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendResponse);
          EXPECT_EQ(cmd::SendMessage::ID, sendResponse->GetId());
          EXPECT_EQ(2U, sendResponse->GetArgsCount());
-         EXPECT_STREQ(expectedResponse, sendResponse->GetArgAt(0).data());
+         EXPECT_TRUE(sendResponse->GetArgAt(0) == expectedResponse1 ||
+                     sendResponse->GetArgAt(0) == expectedResponse2);
          EXPECT_STREQ(peer.mac.c_str(), sendResponse->GetArgAt(1).data());
          RespondOK(id);
       }
@@ -1227,23 +1244,29 @@ TEST_F(P2R8, local_generator_responds_to_remote_and_local_requests)
          RespondOK(id);
       }
 
-      std::ostringstream expectedResponse;
-      expectedResponse << R"(<Response successCount="70" size="70" type="D6">)";
-      for (int i = 0; i < 70; ++i)
-         expectedResponse << "<Val>6</Val>";
-      expectedResponse << R"(</Response>)";
+      std::ostringstream expectedResponse1;
+      std::ostringstream expectedResponse2;
+      expectedResponse1 << R"(<Response successCount="70" size="70" type="D6">)";
+      expectedResponse2 << R"(<Response size="70" successCount="70" type="D6">)";
+      for (int i = 0; i < 70; ++i) {
+         expectedResponse1 << "<Val>6</Val>";
+         expectedResponse2 << "<Val>6</Val>";
+      }
+      expectedResponse1 << R"(</Response>)";
+      expectedResponse2 << R"(</Response>)";
 
       for (const auto & peer : Peers()) {
          auto [sendResponse, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendResponse);
          EXPECT_EQ(cmd::SendMessage::ID, sendResponse->GetId());
          EXPECT_EQ(2U, sendResponse->GetArgsCount());
-         EXPECT_STREQ(expectedResponse.str().c_str(), sendResponse->GetArgAt(0).data());
+         EXPECT_TRUE(sendResponse->GetArgAt(0) == expectedResponse1.str() ||
+                     sendResponse->GetArgAt(0) == expectedResponse2.str());
          EXPECT_STREQ(peer.mac.c_str(), sendResponse->GetArgAt(1).data());
          RespondOK(id);
       }
 
-      expectedResponse.str("");
+      std::ostringstream expectedResponse;
       for (int i = 0; i < 70; ++i)
          expectedResponse << "6;";
 

@@ -656,7 +656,8 @@ public:
       return pchild;
    }
 
-   friend std::basic_ostream<char_t> &operator<<(std::basic_ostream<char_t> &out, const my_t &e);
+   template <typename C>
+   friend std::basic_ostream<C> &operator<<(std::basic_ostream<C> &out, const Element<C> &e);
 
 private:
    const std::pair<const std::basic_string<char_t>, std::basic_string<char_t>> &GetAttr(std::size_t index) const
