@@ -2,8 +2,11 @@
 #include "ctrl/timer.hpp"
 #include "dice/engine.hpp"
 #include "dice/serializer.hpp"
-#include "fsm/states.hpp"
+#include "fsm/context.hpp"
+#include "fsm/statebase.hpp"
+#include "fsm/stateidle.hpp"
 #include "sign/commandmanager.hpp"
+#include "sign/externalinvoker.hpp"
 #include "sign/events.hpp"
 
 #include "utils/log.hpp"
@@ -42,11 +45,11 @@ private:
       if (m_cmdManager)
          return;
       m_cmdManager = std::make_unique<cmd::Manager>(std::move(uiInvoker), std::move(btInvoker));
-      m_state.emplace<fsm::StateIdle>(fsm::Context{m_generator.get(),
-                                                   m_serializer.get(),
-                                                   m_timer.get(),
-                                                   *m_cmdManager,
-                                                   &m_state});
+      fsm::Context::SwitchToState<fsm::StateIdle>(fsm::Context{m_generator.get(),
+                                                               m_serializer.get(),
+                                                               m_timer.get(),
+                                                               *m_cmdManager,
+                                                               &m_state});
    }
    void OnEvent(int32_t eventId, const std::vector<std::string> & args) override
    {
@@ -65,7 +68,12 @@ private:
          ss << " [" << s << "]";
       Log::Info(TAG, "<<<<< {}{}", name, ss.str());
 
-      bool success = (*handler)(m_state, args);
+      if (!m_state) {
+         Log::Error(TAG, "{}: no state", __func__);
+         return;
+      }
+
+      bool success = (*handler)(*m_state, args);
       if (!success) [[unlikely]] {
          Log::Error(TAG, "Could not parse event args");
       }
@@ -85,7 +93,7 @@ private:
    std::unique_ptr<dice::ISerializer> m_serializer;
 
    EventHandlerMap m_eventHandlers;
-   fsm::StateHolder m_state;
+   std::unique_ptr<fsm::StateBase> m_state;
 };
 
 } // namespace

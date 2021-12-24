@@ -3,6 +3,7 @@
 #include "sign/commandmanager.hpp"
 #include "sign/commands.hpp"
 #include "sign/commandpool.hpp"
+#include "sign/externalinvoker.hpp"
 #include "dice/serializer.hpp"
 #include "fakelogger.hpp"
 

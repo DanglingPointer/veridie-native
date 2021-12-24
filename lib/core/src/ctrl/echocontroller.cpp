@@ -2,6 +2,7 @@
 #include "sign/cmd.hpp"
 #include "sign/commandmanager.hpp"
 #include "sign/commandpool.hpp"
+#include "sign/externalinvoker.hpp"
 
 #include "utils/log.hpp"
 #include "utils/task.hpp"

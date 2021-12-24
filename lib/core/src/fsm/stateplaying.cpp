@@ -1,9 +1,9 @@
-#include "bt/device.hpp"
+#include "fsm/stateplaying.hpp"
+
 #include "ctrl/timer.hpp"
-#include "fsm/states.hpp"
-#include "fsm/stateswitcher.hpp"
-#include "dice/serializer.hpp"
 #include "dice/engine.hpp"
+#include "fsm/stateidle.hpp"
+#include "fsm/statenegotiating.hpp"
 #include "sign/commands.hpp"
 
 #include "utils/log.hpp"
@@ -55,109 +55,116 @@ namespace fsm {
 
 // Handles connection errors, retries, reconnections(?), buffering etc
 // We assume no new requests until the last one has been answered
-class StatePlaying::RemotePeerManager : private cr::TaskOwner<>
+
+StatePlaying::RemotePeerManager::RemotePeerManager(const bt::Device & remote,
+                                                   core::CommandAdapter & proxy,
+                                                   core::Timer & timer,
+                                                   bool isGenerator,
+                                                   std::function<void()> renegotiate)
+   : m_remote(remote)
+   , m_proxy(proxy)
+   , m_timer(timer)
+   , m_renegotiate(std::move(renegotiate))
+   , m_isGenerator(isGenerator)
+   , m_pendingRequest(false)
+   , m_connected(true)
+{}
+
+StatePlaying::RemotePeerManager::~RemotePeerManager()
 {
-public:
-   RemotePeerManager(const bt::Device & remote,
-                     core::CommandAdapter & proxy,
-                     core::Timer & timer,
-                     bool isGenerator,
-                     std::function<void()> renegotiate)
-      : m_remote(remote)
-      , m_proxy(proxy)
-      , m_timer(timer)
-      , m_renegotiate(std::move(renegotiate))
-      , m_isGenerator(isGenerator)
-      , m_pendingRequest(false)
-      , m_connected(true)
-   {}
-   ~RemotePeerManager()
-   {
-      if (!m_connected)
-         m_proxy.FireAndForget<cmd::CloseConnection>("Connection has been lost", m_remote.mac);
+   if (!m_connected)
+      m_proxy.FireAndForget<cmd::CloseConnection>("Connection has been lost", m_remote.mac);
+}
+
+const bt::Device & StatePlaying::RemotePeerManager::GetDevice() const
+{
+   return m_remote;
+}
+
+bool StatePlaying::RemotePeerManager::IsConnected() const
+{
+   return m_connected;
+}
+
+bool StatePlaying::RemotePeerManager::IsGenerator() const
+{
+   return m_isGenerator;
+}
+
+void StatePlaying::RemotePeerManager::SendRequest(const std::string & request)
+{
+   m_pendingRequest = true;
+   StartTask(m_isGenerator ? SendRequestToGenerator(request) : Send(request));
+}
+
+void StatePlaying::RemotePeerManager::SendResponse(const std::string & response)
+{
+   StartTask(Send(response));
+}
+
+void StatePlaying::RemotePeerManager::OnReceptionSuccess(bool answeredRequest)
+{
+   m_connected = true;
+   if (answeredRequest)
+      m_pendingRequest = false;
+}
+
+void StatePlaying::RemotePeerManager::OnReceptionFailure()
+{
+   m_connected = false;
+   if (m_isGenerator)
+      m_renegotiate();
+}
+
+cr::TaskHandle<void> StatePlaying::RemotePeerManager::SendRequestToGenerator(std::string request)
+{
+   for (unsigned attempt = REQUEST_ATTEMPTS; attempt > 0; --attempt) {
+      co_await StartNestedTask(Send(request));
+      co_await m_timer.WaitFor(1s);
+      if (!m_pendingRequest)
+         co_return;
    }
-   const bt::Device & GetDevice() const { return m_remote; }
-   bool IsConnected() const { return m_connected; }
-   bool IsGenerator() const { return m_isGenerator; }
-   void SendRequest(const std::string & request)
-   {
-      m_pendingRequest = true;
-      StartTask(m_isGenerator ? SendRequestToGenerator(request) : Send(request));
-   }
-   void SendResponse(const std::string & response) { StartTask(Send(response)); }
-   void OnReceptionSuccess(bool answeredRequest)
-   {
-      m_connected = true;
-      if (answeredRequest)
-         m_pendingRequest = false;
-   }
-   void OnReceptionFailure()
-   {
-      m_connected = false;
-      if (m_isGenerator)
-         m_renegotiate();
+   m_renegotiate();
+}
+
+cr::TaskHandle<void> StatePlaying::RemotePeerManager::Send(std::string message)
+{
+   if (message.size() > cmd::SendLongMessage::MAX_BUFFER_SIZE) {
+      m_proxy.FireAndForget<cmd::ShowToast>("Cannot send too long message, try fewer dices", 7s);
+      co_return;
    }
 
-private:
-   [[nodiscard]] cr::TaskHandle<void> SendRequestToGenerator(std::string request)
-   {
-      for (unsigned attempt = REQUEST_ATTEMPTS; attempt > 0; --attempt) {
-         co_await StartNestedTask(Send(request));
-         co_await m_timer.WaitFor(1s);
-         if (!m_pendingRequest)
+   unsigned retriesLeft = RETRY_COUNT;
+
+   do {
+      cmd::SendMessageResponse response;
+      if (message.size() <= cmd::SendMessage::MAX_BUFFER_SIZE)
+         response = co_await m_proxy.Command<cmd::SendMessage>(message, m_remote.mac);
+      else
+         response = co_await m_proxy.Command<cmd::SendLongMessage>(message, m_remote.mac);
+
+      switch (response) {
+      case cmd::SendMessageResponse::INVALID_STATE:
+      case cmd::SendMessageResponse::INTEROP_FAILURE:
+         break;
+      case cmd::SendMessageResponse::OK:
+         m_connected = true;
+         if (m_queuedMessages.empty())
             co_return;
-      }
-      m_renegotiate();
-   }
-   [[nodiscard]] cr::TaskHandle<void> Send(std::string message)
-   {
-      if (message.size() > cmd::SendLongMessage::MAX_BUFFER_SIZE) {
-         m_proxy.FireAndForget<cmd::ShowToast>("Cannot send too long message, try fewer dices", 7s);
+
+         message = std::move(m_queuedMessages.back());
+         m_queuedMessages.pop_back();
+         retriesLeft = RETRY_COUNT + 1;
+         break;
+      default:
+         m_connected = false;
+         m_queuedMessages.emplace_back(std::move(message));
+         if (m_isGenerator)
+            m_renegotiate();
          co_return;
       }
-
-      unsigned retriesLeft = RETRY_COUNT;
-
-      do {
-         cmd::SendMessageResponse response;
-         if (message.size() <= cmd::SendMessage::MAX_BUFFER_SIZE)
-            response = co_await m_proxy.Command<cmd::SendMessage>(message, m_remote.mac);
-         else
-            response = co_await m_proxy.Command<cmd::SendLongMessage>(message, m_remote.mac);
-
-         switch (response) {
-         case cmd::SendMessageResponse::INVALID_STATE:
-         case cmd::SendMessageResponse::INTEROP_FAILURE:
-            break;
-         case cmd::SendMessageResponse::OK:
-            m_connected = true;
-            if (m_queuedMessages.empty())
-               co_return;
-
-            message = std::move(m_queuedMessages.back());
-            m_queuedMessages.pop_back();
-            retriesLeft = RETRY_COUNT + 1;
-            break;
-         default:
-            m_connected = false;
-            m_queuedMessages.emplace_back(std::move(message));
-            if (m_isGenerator)
-               m_renegotiate();
-            co_return;
-         }
-      } while (--retriesLeft > 0);
-   }
-
-   bt::Device m_remote;
-   core::CommandAdapter & m_proxy;
-   core::Timer & m_timer;
-   std::function<void()> m_renegotiate;
-   const bool m_isGenerator;
-
-   bool m_pendingRequest;
-   bool m_connected;
-   std::vector<std::string> m_queuedMessages;
-};
+   } while (--retriesLeft > 0);
+}
 
 
 StatePlaying::StatePlaying(const Context & ctx,
@@ -193,7 +200,7 @@ void StatePlaying::OnBluetoothOff()
 {
    m_ctx.proxy.FireAndForget<cmd::ResetConnections>();
    m_ctx.proxy.FireAndForget<cmd::ResetGame>();
-   SwitchToState<StateIdle>(m_ctx);
+   Context::SwitchToState<StateIdle>(m_ctx);
 }
 
 void StatePlaying::OnDeviceConnected(const bt::Device & remote)
@@ -270,7 +277,7 @@ void StatePlaying::OnGameStopped()
 {
    m_ctx.proxy.FireAndForget<cmd::ResetConnections>();
    m_ctx.proxy.FireAndForget<cmd::ResetGame>();
-   SwitchToState<StateIdle>(m_ctx);
+   Context::SwitchToState<StateIdle>(m_ctx);
 }
 
 void StatePlaying::OnSocketReadFailure(const bt::Device & transmitter)
@@ -286,7 +293,7 @@ void StatePlaying::StartNegotiation()
       if (mgr.IsConnected())
          peers.emplace(mgr.GetDevice());
 
-   SwitchToState<StateNegotiating>(m_ctx, std::move(peers), m_localMac);
+   Context::SwitchToState<StateNegotiating>(m_ctx, std::move(peers), m_localMac);
 }
 
 void StatePlaying::StartNegotiationWithOffer(const bt::Device & sender, const std::string & offer)
@@ -297,7 +304,7 @@ void StatePlaying::StartNegotiationWithOffer(const bt::Device & sender, const st
          peers.emplace(mgr.GetDevice());
    m_managers.clear();
 
-   SwitchToState<StateNegotiating>(m_ctx, std::move(peers), m_localMac, sender, offer);
+   Context::SwitchToState<StateNegotiating>(m_ctx, std::move(peers), m_localMac, sender, offer);
 }
 
 cr::TaskHandle<void> StatePlaying::ShowRequest(const dice::Request & request,

@@ -9,7 +9,7 @@
 #include "bt/device.hpp"
 #include "ctrl/controller.hpp"
 #include "ctrl/timer.hpp"
-#include "sign/commands.hpp"
+#include "sign/commandpool.hpp"
 #include "sign/externalinvoker.hpp"
 #include "sign/events.hpp"
 #include "dice/engine.hpp"
@@ -187,6 +187,7 @@ protected:
                                          std::make_unique<core::Timer>(std::ref(m_timer)),
                                          dice::CreateXmlSerializer());
       ctrl->Start(m_proxy.GetUiInvoker(), m_proxy.GetBtInvoker());
+      m_timer.FastForwardTime();
       return ctrl;
    }
 

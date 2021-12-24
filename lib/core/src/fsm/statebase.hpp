@@ -19,16 +19,17 @@ protected:
    StateBase() = default;
 
 public:
-   void OnBluetoothOn(){}
-   void OnBluetoothOff(){}
-   void OnDeviceConnected(const bt::Device & /*remote*/){}
-   void OnDeviceDisconnected(const bt::Device & /*remote*/){}
-   void OnConnectivityEstablished(){}
-   void OnNewGame(){}
-   void OnMessageReceived(const bt::Device & /*sender*/, const std::string & /*message*/){}
-   void OnCastRequest(dice::Request && /*localRequest*/){}
-   void OnGameStopped(){}
-   void OnSocketReadFailure(const bt::Device & /*transmitter*/){}
+   virtual ~StateBase() = default;
+   virtual void OnBluetoothOn(){}
+   virtual void OnBluetoothOff(){}
+   virtual void OnDeviceConnected(const bt::Device & /*remote*/){}
+   virtual void OnDeviceDisconnected(const bt::Device & /*remote*/){}
+   virtual void OnConnectivityEstablished(){}
+   virtual void OnNewGame(){}
+   virtual void OnMessageReceived(const bt::Device & /*sender*/, const std::string & /*message*/){}
+   virtual void OnCastRequest(dice::Request && /*localRequest*/){}
+   virtual void OnGameStopped(){}
+   virtual void OnSocketReadFailure(const bt::Device & /*transmitter*/){}
    using cr::TaskOwner<>::RethrowExceptions;
 };
 

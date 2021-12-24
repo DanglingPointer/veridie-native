@@ -1,4 +1,5 @@
 #include "sign/commandmanager.hpp"
+#include "sign/externalinvoker.hpp"
 
 #include "utils/log.hpp"
 

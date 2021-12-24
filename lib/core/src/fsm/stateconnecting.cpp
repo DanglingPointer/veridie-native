@@ -1,7 +1,8 @@
-#include "bt/device.hpp"
+#include "fsm/stateconnecting.hpp"
+
+#include "fsm/stateidle.hpp"
+#include "fsm/statenegotiating.hpp"
 #include "ctrl/timer.hpp"
-#include "fsm/states.hpp"
-#include "fsm/stateswitcher.hpp"
 #include "dice/serializer.hpp"
 #include "sign/commands.hpp"
 
@@ -45,7 +46,7 @@ StateConnecting::~StateConnecting()
 
 void StateConnecting::OnBluetoothOff()
 {
-   SwitchToState<StateIdle>(m_ctx, true);
+   Context::SwitchToState<StateIdle>(m_ctx, true);
 }
 
 void StateConnecting::OnDeviceConnected(const bt::Device & remote)
@@ -96,14 +97,14 @@ void StateConnecting::OnConnectivityEstablished()
 void StateConnecting::OnGameStopped()
 {
    m_ctx.proxy.FireAndForget<cmd::ResetConnections>();
-   SwitchToState<StateIdle>(m_ctx);
+   Context::SwitchToState<StateIdle>(m_ctx);
 }
 
 void StateConnecting::DetectFatalFailure()
 {
    if (m_listening.has_value() && !*m_listening && m_discovering.has_value() && !*m_discovering) {
       m_ctx.proxy.FireAndForget<cmd::ShowAndExit>("Cannot proceed due to a fatal failure.");
-      SwitchToState<std::monostate>(m_ctx);
+      Context::SwitchToState<void>(m_ctx);
    }
 }
 
@@ -148,7 +149,9 @@ cr::TaskHandle<void> StateConnecting::AttemptNegotiationStart()
    do {
       if (m_localMac.has_value()) {
          cmd::pool.Resize(m_peers.size());
-         SwitchToState<StateNegotiating>(m_ctx, std::move(m_peers), *std::move(m_localMac));
+         Context::SwitchToState<StateNegotiating>(m_ctx,
+                                                  std::move(m_peers),
+                                                  *std::move(m_localMac));
          co_return;
       }
 
@@ -161,7 +164,7 @@ cr::TaskHandle<void> StateConnecting::AttemptNegotiationStart()
 
    m_ctx.proxy.FireAndForget<cmd::ResetGame>();
    m_ctx.proxy.FireAndForget<cmd::ResetConnections>();
-   SwitchToState<StateIdle>(m_ctx);
+   Context::SwitchToState<StateIdle>(m_ctx);
 }
 
 cr::TaskHandle<void> StateConnecting::KickOffDiscovery()

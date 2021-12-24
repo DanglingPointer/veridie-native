@@ -1,6 +1,7 @@
+#include "fsm/stateidle.hpp"
+
+#include "fsm/stateconnecting.hpp"
 #include "ctrl/timer.hpp"
-#include "fsm/states.hpp"
-#include "fsm/stateswitcher.hpp"
 #include "sign/commands.hpp"
 
 #include "utils/log.hpp"
@@ -34,7 +35,7 @@ void StateIdle::OnBluetoothOn()
    if (m_enableBtTask)
       m_enableBtTask = {};
    if (m_newGamePending) {
-      SwitchToState<StateConnecting>(m_ctx);
+      Context::SwitchToState<StateConnecting>(m_ctx);
    }
 }
 
@@ -51,7 +52,7 @@ void StateIdle::OnNewGame()
 {
    m_newGamePending = true;
    if (m_bluetoothOn) {
-      SwitchToState<StateConnecting>(m_ctx);
+      Context::SwitchToState<StateConnecting>(m_ctx);
    } else if (!m_enableBtTask) {
       m_enableBtTask = RequestBluetoothOn();
       m_enableBtTask.Run(Executor());
@@ -72,12 +73,12 @@ cr::TaskHandle<void> StateIdle::RequestBluetoothOn()
          break;
       case Response::OK:
          if (m_newGamePending)
-            SwitchToState<StateConnecting>(m_ctx);
+            Context::SwitchToState<StateConnecting>(m_ctx);
          m_bluetoothOn = true;
          break;
       case Response::NO_BT_ADAPTER:
          m_ctx.proxy.FireAndForget<cmd::ShowAndExit>("Cannot proceed due to a fatal failure.");
-         SwitchToState<std::monostate>(m_ctx);
+         Context::SwitchToState<void>(m_ctx);
          [[fallthrough]];
       case Response::USER_DECLINED:
          co_return;

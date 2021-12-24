@@ -2,7 +2,6 @@
 #define SIGN_COMMANDMANAGER_HPP
 
 #include "sign/cmd.hpp"
-#include "sign/externalinvoker.hpp"
 #include "utils/coroutine.hpp"
 #include "utils/poolptr.hpp"
 
@@ -11,7 +10,7 @@
 #include <unordered_map>
 
 namespace cmd {
-class ICommand;
+class IExternalInvoker;
 
 class Manager
 {

@@ -1,8 +1,8 @@
-#include "bt/device.hpp"
+#include "fsm/statenegotiating.hpp"
+
 #include "ctrl/timer.hpp"
-#include "dice/serializer.hpp"
-#include "fsm/states.hpp"
-#include "fsm/stateswitcher.hpp"
+#include "fsm/stateidle.hpp"
+#include "fsm/stateplaying.hpp"
 #include "sign/commands.hpp"
 
 #include "utils/log.hpp"
@@ -56,7 +56,7 @@ void StateNegotiating::OnBluetoothOff()
 {
    m_ctx.proxy.FireAndForget<cmd::ResetConnections>();
    m_ctx.proxy.FireAndForget<cmd::ResetGame>();
-   SwitchToState<StateIdle>(m_ctx);
+   Context::SwitchToState<StateIdle>(m_ctx);
 }
 
 void StateNegotiating::OnMessageReceived(const bt::Device & sender, const std::string & message)
@@ -77,7 +77,7 @@ void StateNegotiating::OnMessageReceived(const bt::Device & sender, const std::s
 void StateNegotiating::OnGameStopped()
 {
    m_ctx.proxy.FireAndForget<cmd::ResetConnections>();
-   SwitchToState<StateIdle>(m_ctx);
+   Context::SwitchToState<StateIdle>(m_ctx);
 }
 
 void StateNegotiating::OnSocketReadFailure(const bt::Device & from)
@@ -131,10 +131,10 @@ cr::TaskHandle<void> StateNegotiating::UpdateAndBroadcastOffer()
             nomineeName = it->name;
          }
          m_ctx.proxy.FireAndForget<cmd::NegotiationStop>(nomineeName);
-         SwitchToState<StatePlaying>(m_ctx,
-                                     std::move(m_peers),
-                                     std::move(m_localMac),
-                                     std::move(localOffer->second.mac));
+         Context::SwitchToState<StatePlaying>(m_ctx,
+                                              std::move(m_peers),
+                                              std::move(m_localMac),
+                                              std::move(localOffer->second.mac));
          co_return;
       }
 
