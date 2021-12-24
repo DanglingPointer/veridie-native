@@ -1,5 +1,5 @@
-#ifndef CORE_EXEC_HPP
-#define CORE_EXEC_HPP
+#ifndef MAIN_EXEC_HPP
+#define MAIN_EXEC_HPP
 
 #include "utils/alwayscopyable.hpp"
 #include "utils/coroutine.hpp"
@@ -29,4 +29,4 @@ private:
 
 } // namespace core
 
-#endif // CORE_EXEC_HPP
+#endif // MAIN_EXEC_HPP
