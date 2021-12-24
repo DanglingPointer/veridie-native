@@ -214,10 +214,8 @@ void StatePlaying::OnMessageReceived(const bt::Device & sender, const std::strin
 
       if (std::holds_alternative<dice::Offer>(parsed)) {
          mgr->second.OnReceptionSuccess(m_pendingRequest == nullptr);
-         if (m_ignoreOffers)
-            return;
-         StateNegotiating & s = StartImmediateNegotiation();
-         s.OnMessageReceived(sender, message);
+         if (!m_ignoreOffers)
+            StartNegotiationWithOffer(sender, message);
          return;
       }
 
@@ -291,16 +289,15 @@ void StatePlaying::StartNegotiation()
    SwitchToState<StateNegotiating>(m_ctx, std::move(peers), m_localMac);
 }
 
-StateNegotiating & StatePlaying::StartImmediateNegotiation()
+void StatePlaying::StartNegotiationWithOffer(const bt::Device & sender, const std::string & offer)
 {
    std::unordered_set<bt::Device> peers;
    for (const auto & [_, mgr] : m_managers)
       if (mgr.IsConnected())
          peers.emplace(mgr.GetDevice());
    m_managers.clear();
-   fsm::Context ctx{m_ctx};
-   std::string localMac(m_localMac);
-   return ctx.state->emplace<StateNegotiating>(ctx, std::move(peers), std::move(localMac));
+
+   SwitchToState<StateNegotiating>(m_ctx, std::move(peers), m_localMac, sender, offer);
 }
 
 cr::TaskHandle<void> StatePlaying::ShowRequest(const dice::Request & request,

@@ -1267,8 +1267,9 @@ TEST_F(P2R8, local_generator_responds_to_remote_and_local_requests)
    timer->FastForwardTime(8s);
    EXPECT_TRUE(proxy->NoCommands());
    ctrl->OnEvent(event::MessageReceived::ID, {offer, Peers()[1].mac, ""});
-   EXPECT_EQ("New state: StateNegotiating", logger.GetLastStateLine());
 
+   timer->FastForwardTime();
+   EXPECT_EQ("New state: StateNegotiating", logger.GetLastStateLine());
    auto [negotiationStart, negStartId] = proxy->PopNextCommand();
    ASSERT_TRUE(negotiationStart);
    EXPECT_EQ(cmd::NegotiationStart::ID, negotiationStart->GetId());
@@ -1552,6 +1553,7 @@ TEST_F(P2R17, disconnects_peers_that_are_in_error_state_at_the_end)
    EXPECT_EQ(2U, disconnect->GetArgsCount());
    EXPECT_STREQ(Peers()[1].mac.c_str(), disconnect->GetArgAt(1).data());
 
+   timer->FastForwardTime();
    EXPECT_EQ("New state: StateNegotiating", logger.GetLastStateLine());
    auto [negotiationStart, negStartId] = proxy->PopNextCommand();
    ASSERT_TRUE(negotiationStart);
@@ -1616,6 +1618,7 @@ TEST_F(P2R21, goes_to_idle_from_mid_game_negotiation_if_game_stopped)
    std::string offer = R"(<Offer round="19"><Mac>)" + Peers()[1].mac + "</Mac></Offer>";
    ctrl->OnEvent(event::MessageReceived::ID, {offer, Peers()[0].mac, ""});
 
+   timer->FastForwardTime();
    auto [negotiationStart, negStartId] = proxy->PopNextCommand();
    ASSERT_TRUE(negotiationStart);
    EXPECT_EQ(cmd::NegotiationStart::ID, negotiationStart->GetId());

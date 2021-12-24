@@ -17,7 +17,7 @@ namespace dice {
 struct Offer;
 struct Request;
 struct Response;
-}
+} // namespace dice
 
 namespace fsm {
 
@@ -76,6 +76,11 @@ public:
    StateNegotiating(const Context & ctx,
                     std::unordered_set<bt::Device> && peers,
                     std::string && localMac);
+   StateNegotiating(const Context & ctx,
+                    std::unordered_set<bt::Device> && peers,
+                    std::string && localMac,
+                    const bt::Device & sender,
+                    const std::string & message);
    ~StateNegotiating();
    void OnBluetoothOff();
    void OnMessageReceived(const bt::Device & sender, const std::string & message);
@@ -115,9 +120,11 @@ private:
    class RemotePeerManager;
 
    void StartNegotiation();
-   StateNegotiating & StartImmediateNegotiation();
-   [[nodiscard]] cr::TaskHandle<void> ShowRequest(const dice::Request & request, const std::string & from);
-   [[nodiscard]] cr::TaskHandle<void> ShowResponse(const dice::Response & response, const std::string & from);
+   void StartNegotiationWithOffer(const bt::Device & sender, const std::string & offer);
+   [[nodiscard]] cr::TaskHandle<void> ShowRequest(const dice::Request & request,
+                                                  const std::string & from);
+   [[nodiscard]] cr::TaskHandle<void> ShowResponse(const dice::Response & response,
+                                                   const std::string & from);
 
    Context m_ctx;
    const std::string m_localMac;

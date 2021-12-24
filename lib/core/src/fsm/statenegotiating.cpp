@@ -40,6 +40,16 @@ StateNegotiating::StateNegotiating(const fsm::Context & ctx,
    StartTask(StartNegotiation());
 }
 
+StateNegotiating::StateNegotiating(const Context & ctx,
+                                   std::unordered_set<bt::Device> && peers,
+                                   std::string && localMac,
+                                   const bt::Device & sender,
+                                   const std::string & message)
+   : StateNegotiating(ctx, std::move(peers), std::move(localMac))
+{
+   OnMessageReceived(sender, message);
+}
+
 StateNegotiating::~StateNegotiating() = default;
 
 void StateNegotiating::OnBluetoothOff()
