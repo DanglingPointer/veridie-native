@@ -18,7 +18,7 @@ void WriteToBuffer(T i, char * from, char * to) noexcept
 
 void WriteToBuffer(std::string_view sv, char * from, char * to) noexcept
 {
-   assert(sv.size() < to - from);
+   assert(static_cast<int>(sv.size()) < to - from);
    *from++ = static_cast<unsigned char>(sv.size());
    std::memcpy(from, sv.data(), sv.size());
    (void)to;

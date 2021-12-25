@@ -5,10 +5,10 @@ find_library(log-lib
 macro(add_jni_library name core_flavor)
     add_library(${name}
             SHARED
-            javainvoker.cpp
-            jniexec.cpp
-            mainexec.cpp
-            worker.cpp
+            javainvoker.cpp javainvoker.hpp
+            jniexec.cpp jniexec.hpp
+            mainexec.cpp mainexec.hpp
+            worker.cpp worker.hpp
             )
     target_compile_features(${name}
             PUBLIC cxx_std_20

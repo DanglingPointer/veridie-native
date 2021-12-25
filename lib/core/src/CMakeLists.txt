@@ -1,5 +1,5 @@
 
-function(veridie_library name)
+function(add_core_library name)
     set(library_name "veridie-${name}")
     add_library(${library_name} STATIC ${ARGN})
     target_compile_features(${library_name} PUBLIC cxx_std_20)
@@ -12,22 +12,38 @@ function(veridie_library name)
 endfunction()
 
 
-veridie_library(core
-        ctrl/controller.cpp
-        ctrl/commandadapter.cpp
-        ctrl/timer.cpp
-        dice/engine.cpp
-        dice/serializer.cpp
-        fsm/stateconnecting.cpp
-        fsm/stateidle.cpp
-        fsm/statenegotiating.cpp
-        fsm/stateplaying.cpp
-        sign/commandmanager.cpp
-        sign/commands.cpp
-        sign/events.cpp
+add_core_library(core
+        bt/device.hpp
+        ctrl/controller.cpp include/ctrl/controller.hpp
+        ctrl/commandadapter.cpp ctrl/commandadapter.hpp
+        ctrl/timer.cpp include/ctrl/timer.hpp
+        dice/engine.cpp include/dice/engine.hpp
+        dice/serializer.cpp include/dice/serializer.hpp
+        dice/xmlparser.hpp
+        include/dice/cast.hpp
+        include/sign/cmd.hpp
+        include/sign/externalinvoker.hpp
+        fsm/context.hpp
+        fsm/statebase.hpp
+        fsm/stateconnecting.cpp fsm/stateconnecting.hpp
+        fsm/stateidle.cpp fsm/stateidle.hpp
+        fsm/statenegotiating.cpp fsm/statenegotiating.hpp
+        fsm/stateplaying.cpp fsm/stateplaying.hpp
+        sign/commandmanager.cpp sign/commandmanager.hpp
+        sign/commands.cpp sign/commands.hpp
+        sign/commandpool.hpp
+        sign/events.cpp sign/events.hpp
         )
 
-veridie_library(fakecore
-        ctrl/echocontroller.cpp
-        sign/commandmanager.cpp
+add_core_library(fakecore
+        ctrl/echocontroller.cpp include/ctrl/controller.hpp
+        sign/commandmanager.cpp sign/commandmanager.hpp
+        sign/commandpool.hpp
+        sign/commands.hpp
+        include/ctrl/controller.hpp
+        include/dice/cast.hpp
+        include/dice/engine.hpp
+        include/dice/serializer.hpp
+        include/sign/cmd.hpp
+        include/sign/externalinvoker.hpp
         )

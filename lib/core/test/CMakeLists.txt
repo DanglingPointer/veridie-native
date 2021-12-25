@@ -1,5 +1,6 @@
 
 add_executable(coretests
+        fakelogger.hpp
         test_dice.cpp
         test_cmd.cpp
         test_controller.cpp

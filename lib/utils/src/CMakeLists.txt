@@ -1,8 +1,15 @@
 
 add_library(veridie-utils
         STATIC
-        format.cpp
-        log.cpp
+        format.cpp include/utils/format.hpp
+        log.cpp include/utils/log.hpp
+        include/utils/alwayscopyable.hpp
+        include/utils/coroutine.hpp
+        include/utils/mempool.hpp
+        include/utils/poolbuilder.hpp
+        include/utils/poolptr.hpp
+        include/utils/task.hpp
+        include/utils/taskowner.hpp
         )
 
 target_compile_features(veridie-utils
