@@ -1,7 +1,9 @@
 #ifndef COROUTINE_HPP
 #define COROUTINE_HPP
 
-#ifdef __clang__
+#include <version>
+
+#ifdef _LIBCPP_VERSION
 
 #include <experimental/coroutine>
 
