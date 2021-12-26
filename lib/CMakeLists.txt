@@ -15,6 +15,8 @@ include(warnings)
 set_warnings(TREAT_AS_ERRORS)
 enable_coroutines()
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 if(veridie_build_tests)
     enable_testing()
 endif()

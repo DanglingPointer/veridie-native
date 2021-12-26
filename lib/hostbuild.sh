@@ -8,7 +8,6 @@ fi
 
 cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -Dveridie_build_tests=ON \
-  -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
   #-DCMAKE_CXX_COMPILER=clang++-12
 cmake --build . && ctest -VV
 
