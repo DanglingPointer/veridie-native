@@ -148,12 +148,16 @@ TEST(DiceTest, serialize_response_with_success_count)
             e(3u);
       });
       dice::Response response{std::move(cast), 10};
-      std::string expected = "<Response size=\"10\" successCount=\"10\" type=\"D6\">"
-                             "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
-                             "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
-                             "</Response>";
+      std::string expected1 = "<Response size=\"10\" successCount=\"10\" type=\"D6\">"
+                              "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                              "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                              "</Response>";
+      std::string expected2 = "<Response type=\"D6\" size=\"10\" successCount=\"10\">"
+                              "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                              "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                              "</Response>";
       std::string actual = slzr->Serialize(response);
-      EXPECT_EQ(expected, actual);
+      EXPECT_TRUE(expected1 == actual || expected2 == actual) << actual;
    }
    catch (const std::invalid_argument & e) {
       ADD_FAILURE() << e.what();
@@ -199,12 +203,16 @@ TEST(DiceTest, serialize_response_without_success_count)
             e(3u);
       });
       dice::Response response{std::move(cast), std::nullopt};
-      std::string expected = "<Response size=\"10\" type=\"D6\">"
-                             "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
-                             "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
-                             "</Response>";
+      std::string expected1 = "<Response size=\"10\" type=\"D6\">"
+                              "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                              "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                              "</Response>";
+      std::string expected2 = "<Response type=\"D6\" size=\"10\">"
+                              "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                              "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                              "</Response>";
       std::string actual = slzr->Serialize(response);
-      EXPECT_EQ(expected, actual);
+      EXPECT_TRUE(expected1 == actual || expected2 == actual) << actual;
    }
    catch (const std::invalid_argument & e) {
       ADD_FAILURE() << e.what();

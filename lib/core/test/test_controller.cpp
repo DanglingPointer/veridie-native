@@ -1318,14 +1318,18 @@ TEST_F(P2R8, local_generator_responds_to_remote_and_local_requests)
    EXPECT_EQ(cmd::NegotiationStart::ID, negotiationStart->GetId());
    RespondOK(negStartId);
 
+   std::unordered_set<std::string> receiverMacs;
    for (auto it = std::crbegin(Peers()); it != std::crend(Peers()); ++it) {
       auto [sendOffer, id] = proxy->PopNextCommand();
       ASSERT_TRUE(sendOffer);
       EXPECT_EQ(cmd::SendMessage::ID, sendOffer->GetId());
       EXPECT_EQ(2U, sendOffer->GetArgsCount());
       EXPECT_STREQ(offer.c_str(), sendOffer->GetArgAt(0).data());
-      EXPECT_STREQ(it->mac.c_str(), sendOffer->GetArgAt(1).data());
+      receiverMacs.emplace(sendOffer->GetArgAt(1));
       RespondOK(id);
+   }
+   for (const auto & device : Peers()) {
+      EXPECT_TRUE(receiverMacs.contains(device.mac));
    }
    EXPECT_TRUE(proxy->NoCommands());
 }
@@ -1499,6 +1503,7 @@ TEST_F(P2R13, remote_generator_is_respected)
    EXPECT_EQ(cmd::NegotiationStart::ID, negotiationStart->GetId());
    RespondOK(negStartId);
 
+   std::unordered_set<std::string> receiverMacs;
    std::string offer = R"(<Offer round="14"><Mac>)" + localMac + "</Mac></Offer>";
    for (auto it = std::crbegin(Peers()); it != std::crend(Peers()); ++it) {
       auto [sendOffer, id] = proxy->PopNextCommand();
@@ -1506,8 +1511,11 @@ TEST_F(P2R13, remote_generator_is_respected)
       EXPECT_EQ(cmd::SendMessage::ID, sendOffer->GetId());
       EXPECT_EQ(2U, sendOffer->GetArgsCount());
       EXPECT_STREQ(offer.c_str(), sendOffer->GetArgAt(0).data());
-      EXPECT_STREQ(it->mac.c_str(), sendOffer->GetArgAt(1).data());
+      receiverMacs.emplace(sendOffer->GetArgAt(1));
       RespondOK(id);
+   }
+   for (const auto & device : Peers()) {
+      EXPECT_TRUE(receiverMacs.contains(device.mac));
    }
    EXPECT_TRUE(proxy->NoCommands());
 }
@@ -1574,6 +1582,7 @@ TEST_F(P2R15, renegotiates_when_generator_doesnt_answer_requests)
    EXPECT_EQ(cmd::NegotiationStart::ID, negotiationStart->GetId());
    RespondOK(negStartId);
 
+   std::unordered_set<std::string> receiverMacs;
    std::string offer = R"(<Offer round="16"><Mac>)" + Peers()[1].mac + "</Mac></Offer>";
    for (auto it = std::crbegin(Peers()); it != std::crend(Peers()); ++it) {
       auto [sendOffer, id] = proxy->PopNextCommand();
@@ -1581,8 +1590,11 @@ TEST_F(P2R15, renegotiates_when_generator_doesnt_answer_requests)
       EXPECT_EQ(cmd::SendMessage::ID, sendOffer->GetId());
       EXPECT_EQ(2U, sendOffer->GetArgsCount());
       EXPECT_STREQ(offer.c_str(), sendOffer->GetArgAt(0).data());
-      EXPECT_STREQ(it->mac.c_str(), sendOffer->GetArgAt(1).data());
+      receiverMacs.emplace(sendOffer->GetArgAt(1));
       RespondOK(id);
+   }
+   for (const auto & device : Peers()) {
+      EXPECT_TRUE(receiverMacs.contains(device.mac));
    }
    EXPECT_TRUE(proxy->NoCommands());
 }
