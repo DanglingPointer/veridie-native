@@ -92,6 +92,22 @@ TEST(DiceTest, deserialize_request_without_success_from)
    }
 }
 
+TEST(DiceTest, serialize_request_without_success_from)
+{
+   auto slzr = dice::CreateXmlSerializer();
+   try {
+      auto cast = dice::MakeCast("D4", 10);
+      dice::Request request{std::move(cast), std::nullopt};
+      std::string expected1 = R"(<Request size="10" type="D4" />)";
+      std::string expected2 = R"(<Request type="D4" size="10" />)";
+      std::string actual = slzr->Serialize(request);
+      EXPECT_TRUE(actual == expected1 || actual == expected2) << actual;
+   }
+   catch (const std::invalid_argument & e) {
+      ADD_FAILURE() << e.what();
+   }
+}
+
 TEST(DiceTest, deserialize_response_with_success_count)
 {
    auto slzr = dice::CreateXmlSerializer();
@@ -122,6 +138,28 @@ TEST(DiceTest, deserialize_response_with_success_count)
    }
 }
 
+TEST(DiceTest, serialize_response_with_success_count)
+{
+   auto slzr = dice::CreateXmlSerializer();
+   try {
+      auto cast = dice::MakeCast("D6", 10);
+      cast.Apply([](auto & vec) {
+         for (auto & e : vec)
+            e(3u);
+      });
+      dice::Response response{std::move(cast), 10};
+      std::string expected = "<Response size=\"10\" successCount=\"10\" type=\"D6\">"
+                             "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                             "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                             "</Response>";
+      std::string actual = slzr->Serialize(response);
+      EXPECT_EQ(expected, actual);
+   }
+   catch (const std::invalid_argument & e) {
+      ADD_FAILURE() << e.what();
+   }
+}
+
 TEST(DiceTest, deserialize_response_without_success_count)
 {
    auto slzr = dice::CreateXmlSerializer();
@@ -145,6 +183,28 @@ TEST(DiceTest, deserialize_response_without_success_count)
          EXPECT_EQ(i + 1, cast->at(i));
       }
       EXPECT_FALSE(r->successCount);
+   }
+   catch (const std::invalid_argument & e) {
+      ADD_FAILURE() << e.what();
+   }
+}
+
+TEST(DiceTest, serialize_response_without_success_count)
+{
+   auto slzr = dice::CreateXmlSerializer();
+   try {
+      auto cast = dice::MakeCast("D6", 10);
+      cast.Apply([](auto & vec) {
+         for (auto & e : vec)
+            e(3u);
+      });
+      dice::Response response{std::move(cast), std::nullopt};
+      std::string expected = "<Response size=\"10\" type=\"D6\">"
+                             "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                             "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                             "</Response>";
+      std::string actual = slzr->Serialize(response);
+      EXPECT_EQ(expected, actual);
    }
    catch (const std::invalid_argument & e) {
       ADD_FAILURE() << e.what();
