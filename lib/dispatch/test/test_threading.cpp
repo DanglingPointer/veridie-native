@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../src/worker.hpp"
+#include "../src/common/worker.hpp"
 
 #include <atomic>
 #include <future>

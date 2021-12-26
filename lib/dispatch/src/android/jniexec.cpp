@@ -1,7 +1,7 @@
 #include "jniexec.hpp"
 #include "javainvoker.hpp"
-#include "mainexec.hpp"
-#include "worker.hpp"
+#include "common/mainexec.hpp"
+#include "common/worker.hpp"
 
 #include "ctrl/controller.hpp"
 #include "sign/externalinvoker.hpp"

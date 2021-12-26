@@ -1,4 +1,4 @@
-project(VeriDie-jni CXX)
+project(VeriDie-dispatch CXX)
 
 add_subdirectory(src)
 
