@@ -8,20 +8,18 @@ namespace bt {
 
 struct Device
 {
-   Device(std::string name, std::string mac)
-      : name(std::move(name))
-      , mac(std::move(mac))
-   {}
-   Device(const Device&) = default;
-   Device(Device&&) noexcept = default;
    std::string name;
    std::string mac;
-
-   bool operator==(const Device & rhs) const noexcept { return mac == rhs.mac; }
-   bool operator!=(const Device & rhs) const noexcept { return !(*this == rhs); }
-   bool operator<(const Device & rhs) const noexcept { return mac < rhs.mac; }
-   bool operator>(const Device & rhs) const noexcept { return mac > rhs.mac; }
 };
+
+inline bool operator==(const Device & lhs, const Device & rhs)
+{
+   return lhs.mac == rhs.mac;
+}
+inline auto operator<=>(const Device & lhs, const Device & rhs)
+{
+   return operator<=>(lhs.mac, rhs.mac);
+}
 } // namespace bt
 
 namespace std {
