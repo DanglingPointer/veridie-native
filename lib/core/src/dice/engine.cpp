@@ -23,7 +23,7 @@ public:
       }
       std::sort(std::begin(cast), std::end(cast));
    }
-   void GenerateResult(Cast & cast) override { std::visit(*this, cast); }
+   void GenerateResult(Cast & cast) override { cast.Apply(*this); }
 
 private:
    std::random_device m_rd;
@@ -52,7 +52,7 @@ namespace dice {
 
 size_t GetSuccessCount(const Cast & cast, uint32_t threshold)
 {
-   return std::visit(SuccessCounter{threshold}, cast);
+   return cast.Apply(SuccessCounter{threshold});
 }
 
 std::unique_ptr<IEngine> CreateUniformEngine()

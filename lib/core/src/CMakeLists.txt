@@ -20,7 +20,7 @@ add_core_library(core
         dice/engine.cpp include/dice/engine.hpp
         dice/serializer.cpp include/dice/serializer.hpp
         dice/xmlparser.hpp
-        include/dice/cast.hpp
+        dice/cast.cpp include/dice/cast.hpp
         include/sign/cmd.hpp
         include/sign/externalinvoker.hpp
         fsm/context.hpp

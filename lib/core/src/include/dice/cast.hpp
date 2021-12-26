@@ -1,9 +1,10 @@
 #ifndef DICE_CAST_HPP
 #define DICE_CAST_HPP
 
+#include <cstdint>
+#include <span>
 #include <vector>
 #include <variant>
-#include <cstdint>
 
 namespace dice {
 
@@ -45,7 +46,25 @@ using D20 = std::vector<internal::SimpleValue<1U, 20U>>;
 
 using D100 = std::vector<internal::SimpleValue<1U, 100U>>;
 
-using Cast = std::variant<D4, D6, D8, D10, D12, D16, D20, D100>;
+struct Cast : std::variant<D4, D6, D8, D10, D12, D16, D20, D100>
+{
+   using Base = std::variant<D4, D6, D8, D10, D12, D16, D20, D100>;
+
+   using Base::variant;
+
+   template <typename V>
+   decltype(auto) Apply(V && visitor) const
+   {
+      return std::visit(std::forward<V>(visitor), static_cast<const Base &>(*this));
+   }
+   template <typename V>
+   decltype(auto) Apply(V && visitor)
+   {
+      return std::visit(std::forward<V>(visitor), static_cast<Base &>(*this));
+   }
+};
+
+std::span<char> WriteAsText(const Cast & cast, std::span<char> dest);
 
 } // namespace dice
 

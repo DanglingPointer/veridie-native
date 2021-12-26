@@ -31,8 +31,8 @@ bool Matches(const dice::Response & response, const dice::Request * request)
    auto getSize = [](const auto & vec) {
       return vec.size();
    };
-   size_t responseSize = std::visit(getSize, response.cast);
-   size_t requestSize = std::visit(getSize, request->cast);
+   size_t responseSize = response.cast.Apply(getSize);
+   size_t requestSize = request->cast.Apply(getSize);
 
    if (responseSize != requestSize)
       return false;
@@ -312,11 +312,9 @@ cr::TaskHandle<void> StatePlaying::ShowRequest(const dice::Request & request,
 {
    const auto response =
       co_await m_ctx.proxy.Command<cmd::ShowRequest>(dice::TypeToString(request.cast),
-                                                     std::visit(
-                                                        [](const auto & vec) {
-                                                           return vec.size();
-                                                        },
-                                                        request.cast),
+                                                     request.cast.Apply([](const auto & vec) {
+                                                        return vec.size();
+                                                     }),
                                                      request.threshold.value_or(0U),
                                                      from);
 
@@ -327,11 +325,9 @@ cr::TaskHandle<void> StatePlaying::ShowRequest(const dice::Request & request,
 cr::TaskHandle<void> StatePlaying::ShowResponse(const dice::Response & response,
                                                 const std::string & from)
 {
-   const size_t responseSize = std::visit(
-      [](const auto & vec) {
-         return vec.size();
-      },
-      response.cast);
+   const size_t responseSize = response.cast.Apply([](const auto & vec) {
+      return vec.size();
+   });
 
    if (responseSize > cmd::ShowLongResponse::MAX_BUFFER_SIZE / 3) {
       m_ctx.proxy.FireAndForget<cmd::ShowToast>("Request is too big, cannot proceed", 7s);

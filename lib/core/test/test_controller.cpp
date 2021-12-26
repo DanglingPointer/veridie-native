@@ -168,12 +168,10 @@ public:
 private:
    void GenerateResult(dice::Cast & cast) override
    {
-      std::visit(
-         [this](auto & vec) {
-            for (auto & e : vec)
-               e(value);
-         },
-         cast);
+      cast.Apply([this](auto & vec) {
+         for (auto & e : vec)
+            e(value);
+      });
    }
 };
 

@@ -87,8 +87,8 @@ private:
 
 std::string XmlSerializer::Serialize(const dice::Request & request)
 {
-   std::string type = std::visit(DiceTypeToString{}, request.cast);
-   auto doc = std::visit(RequestToXml(std::move(type)), request.cast);
+   std::string type = request.cast.Apply(DiceTypeToString{});
+   auto doc = request.cast.Apply(RequestToXml{std::move(type)});
    if (request.threshold) {
       doc->GetRoot().AddAttribute("successFrom", std::to_string(*request.threshold));
    }
@@ -97,8 +97,8 @@ std::string XmlSerializer::Serialize(const dice::Request & request)
 
 std::string XmlSerializer::Serialize(const dice::Response & response)
 {
-   std::string type = std::visit(DiceTypeToString{}, response.cast);
-   auto doc = std::visit(ResponseToXml(std::move(type)), response.cast);
+   std::string type = response.cast.Apply(DiceTypeToString{});
+   auto doc = response.cast.Apply(ResponseToXml{std::move(type)});
    if (response.successCount) {
       doc->GetRoot().AddAttribute("successCount", std::to_string(*response.successCount));
    }
@@ -159,7 +159,7 @@ dice::Response XmlSerializer::ParseResponse(std::unique_ptr<const xml::Document<
    for (size_t i = 0; i < size; ++i) {
       values[i] = std::stoul(doc->GetRoot().GetChild(i).GetContent());
    }
-   std::visit(FillValues(values), cast);
+   cast.Apply(FillValues(values));
 
    std::optional<size_t> successCount;
    try {
@@ -208,7 +208,7 @@ dice::Cast MakeCast(const std::string & type, size_t size)
 
 std::string TypeToString(const dice::Cast & cast)
 {
-   return std::visit(DiceTypeToString{}, cast);
+   return cast.Apply(DiceTypeToString{});
 }
 
 std::unique_ptr<dice::ISerializer> CreateXmlSerializer()
