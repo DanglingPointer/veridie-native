@@ -1,12 +1,14 @@
 #ifndef DICE_SERIALIZER_HPP
 #define DICE_SERIALIZER_HPP
 
+#include "dice/cast.hpp"
+
+#include <compare>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <optional>
 #include <variant>
-#include "dice/cast.hpp"
 
 namespace dice {
 
@@ -14,12 +16,16 @@ struct Request
 {
    dice::Cast cast;
    std::optional<uint32_t> threshold;
+
+   bool operator==(const Request & rhs) const = default;
 };
 
 struct Response
 {
    dice::Cast cast;
    std::optional<size_t> successCount;
+
+   auto operator<=>(const Response & rhs) const = default;
 };
 
 struct Hello

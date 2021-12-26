@@ -10,6 +10,7 @@
 #include "bt/device.hpp"
 #include "ctrl/controller.hpp"
 #include "ctrl/timer.hpp"
+#include "dice/serializer.hpp"
 #include "sign/commandpool.hpp"
 #include "sign/externalinvoker.hpp"
 #include "sign/events.hpp"
@@ -1062,7 +1063,18 @@ protected:
 
    std::string nomineeMac;
    std::string nomineeName;
+   const std::unique_ptr<dice::ISerializer> serializer = dice::CreateXmlSerializer();
 };
+
+dice::Cast CastFilledWith(uint32_t value, const std::string & type, size_t size)
+{
+   auto cast = dice::MakeCast(type, size);
+   cast.Apply([value](auto & vec) {
+      for (auto & v : vec)
+         v(value);
+   });
+   return cast;
+}
 
 using P2R8 = PlayingFixture<2u, 8u>;
 
@@ -1087,17 +1099,17 @@ TEST_F(P2R8, local_generator_responds_to_remote_and_local_requests)
       EXPECT_STREQ(Peers()[0].name.c_str(), showRequest->GetArgAt(3).data());
       RespondOK(showReqId);
 
-      const char * expectedResponse1 =
-         R"(<Response successCount="4" size="4" type="D6"><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val></Response>)";
-      const char * expectedResponse2 =
-         R"(<Response size="4" successCount="4" type="D6"><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val></Response>)";
+      const auto expectedResponse = dice::Response{CastFilledWith(3, "D6", 4), 4u};
       for (const auto & peer : Peers()) {
          auto [sendResponse, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendResponse);
          EXPECT_EQ(cmd::SendMessage::ID, sendResponse->GetId());
          EXPECT_EQ(2U, sendResponse->GetArgsCount());
-         EXPECT_TRUE(expectedResponse1 == sendResponse->GetArgAt(0) ||
-                     expectedResponse2 == sendResponse->GetArgAt(0));
+
+         const auto actualResponse = serializer->Deserialize(sendResponse->GetArgAt(0));
+         EXPECT_TRUE(std::holds_alternative<dice::Response>(actualResponse));
+         EXPECT_EQ(expectedResponse, std::get<dice::Response>(actualResponse));
+
          EXPECT_STREQ(peer.mac.c_str(), sendResponse->GetArgAt(1).data());
          RespondOK(id);
       }
@@ -1129,28 +1141,32 @@ TEST_F(P2R8, local_generator_responds_to_remote_and_local_requests)
       EXPECT_STREQ("You", showRequest->GetArgAt(3).data());
       RespondOK(showReqId);
 
-      const char * expectedRequest = R"(<Request successFrom="43" size="2" type="D100" />)";
+      const auto expectedRequest = dice::Request{dice::MakeCast("D100", 2), 43};
       for (const auto & peer : Peers()) {
          auto [sendRequest, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendRequest);
          EXPECT_EQ(cmd::SendMessage::ID, sendRequest->GetId());
          EXPECT_EQ(2U, sendRequest->GetArgsCount());
-         EXPECT_STREQ(expectedRequest, sendRequest->GetArgAt(0).data());
+
+         const auto actualRequest = serializer->Deserialize(sendRequest->GetArgAt(0));
+         EXPECT_TRUE(std::holds_alternative<dice::Request>(actualRequest));
+         EXPECT_EQ(expectedRequest, std::get<dice::Request>(actualRequest));
+
          EXPECT_STREQ(peer.mac.c_str(), sendRequest->GetArgAt(1).data());
          RespondOK(id);
       }
 
-      const char * expectedResponse1 =
-         R"(<Response successCount="0" size="2" type="D100"><Val>42</Val><Val>42</Val></Response>)";
-      const char * expectedResponse2 =
-         R"(<Response size="2" successCount="0" type="D100"><Val>42</Val><Val>42</Val></Response>)";
+      const auto expectedResponse = dice::Response{CastFilledWith(42, "D100", 2), 0u};
       for (const auto & peer : Peers()) {
          auto [sendResponse, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendResponse);
          EXPECT_EQ(cmd::SendMessage::ID, sendResponse->GetId());
          EXPECT_EQ(2U, sendResponse->GetArgsCount());
-         EXPECT_TRUE(sendResponse->GetArgAt(0) == expectedResponse1 ||
-                     sendResponse->GetArgAt(0) == expectedResponse2);
+
+         const auto actualResponse = serializer->Deserialize(sendResponse->GetArgAt(0));
+         EXPECT_TRUE(std::holds_alternative<dice::Response>(actualResponse));
+         EXPECT_EQ(expectedResponse, std::get<dice::Response>(actualResponse));
+
          EXPECT_STREQ(peer.mac.c_str(), sendResponse->GetArgAt(1).data());
          RespondOK(id);
       }
@@ -1182,25 +1198,32 @@ TEST_F(P2R8, local_generator_responds_to_remote_and_local_requests)
       EXPECT_STREQ("You", showRequest->GetArgAt(3).data());
       RespondOK(showReqId);
 
-      const char * expectedRequest = R"(<Request size="2" type="D100" />)";
+      const auto expectedRequest = dice::Request{dice::MakeCast("D100", 2), std::nullopt};
       for (const auto & peer : Peers()) {
          auto [sendRequest, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendRequest);
          EXPECT_EQ(cmd::SendMessage::ID, sendRequest->GetId());
          EXPECT_EQ(2U, sendRequest->GetArgsCount());
-         EXPECT_STREQ(expectedRequest, sendRequest->GetArgAt(0).data());
+
+         const auto actualRequest = serializer->Deserialize(sendRequest->GetArgAt(0));
+         EXPECT_TRUE(std::holds_alternative<dice::Request>(actualRequest));
+         EXPECT_EQ(expectedRequest, std::get<dice::Request>(actualRequest));
+
          EXPECT_STREQ(peer.mac.c_str(), sendRequest->GetArgAt(1).data());
          RespondOK(id);
       }
 
-      const char * expectedResponse =
-         R"(<Response size="2" type="D100"><Val>42</Val><Val>42</Val></Response>)";
+      const auto expectedResponse = dice::Response{CastFilledWith(42, "D100", 2), std::nullopt};
       for (const auto & peer : Peers()) {
          auto [sendResponse, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendResponse);
          EXPECT_EQ(cmd::SendMessage::ID, sendResponse->GetId());
          EXPECT_EQ(2U, sendResponse->GetArgsCount());
-         EXPECT_STREQ(expectedResponse, sendResponse->GetArgAt(0).data());
+
+         const auto actualResponse = serializer->Deserialize(sendResponse->GetArgAt(0));
+         EXPECT_TRUE(std::holds_alternative<dice::Response>(actualResponse));
+         EXPECT_EQ(expectedResponse, std::get<dice::Response>(actualResponse));
+
          EXPECT_STREQ(peer.mac.c_str(), sendResponse->GetArgAt(1).data());
          RespondOK(id);
       }
@@ -1232,48 +1255,45 @@ TEST_F(P2R8, local_generator_responds_to_remote_and_local_requests)
       EXPECT_STREQ("You", showRequest->GetArgAt(3).data());
       RespondOK(showReqId);
 
-      const char * expectedRequest = R"(<Request successFrom="3" size="70" type="D6" />)";
+      const auto expectedRequest = dice::Request{dice::MakeCast("D6", 70), 3u};
       for (const auto & peer : Peers()) {
          auto [sendRequest, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendRequest);
          EXPECT_EQ(cmd::SendMessage::ID, sendRequest->GetId());
          EXPECT_EQ(2U, sendRequest->GetArgsCount());
-         EXPECT_STREQ(expectedRequest, sendRequest->GetArgAt(0).data());
+
+         const auto actualRequest = serializer->Deserialize(sendRequest->GetArgAt(0));
+         EXPECT_TRUE(std::holds_alternative<dice::Request>(actualRequest));
+         EXPECT_EQ(expectedRequest, std::get<dice::Request>(actualRequest));
+
          EXPECT_STREQ(peer.mac.c_str(), sendRequest->GetArgAt(1).data());
          RespondOK(id);
       }
 
-      std::ostringstream expectedResponse1;
-      std::ostringstream expectedResponse2;
-      expectedResponse1 << R"(<Response successCount="70" size="70" type="D6">)";
-      expectedResponse2 << R"(<Response size="70" successCount="70" type="D6">)";
-      for (int i = 0; i < 70; ++i) {
-         expectedResponse1 << "<Val>6</Val>";
-         expectedResponse2 << "<Val>6</Val>";
-      }
-      expectedResponse1 << R"(</Response>)";
-      expectedResponse2 << R"(</Response>)";
-
+      const auto expectedResponse = dice::Response{CastFilledWith(6, "D6", 70), 70};
       for (const auto & peer : Peers()) {
          auto [sendResponse, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendResponse);
          EXPECT_EQ(cmd::SendMessage::ID, sendResponse->GetId());
          EXPECT_EQ(2U, sendResponse->GetArgsCount());
-         EXPECT_TRUE(sendResponse->GetArgAt(0) == expectedResponse1.str() ||
-                     sendResponse->GetArgAt(0) == expectedResponse2.str());
+
+         const auto actualResponse = serializer->Deserialize(sendResponse->GetArgAt(0));
+         EXPECT_TRUE(std::holds_alternative<dice::Response>(actualResponse));
+         EXPECT_EQ(expectedResponse, std::get<dice::Response>(actualResponse));
+
          EXPECT_STREQ(peer.mac.c_str(), sendResponse->GetArgAt(1).data());
          RespondOK(id);
       }
 
-      std::ostringstream expectedResponse;
+      std::ostringstream expectedTextResponse;
       for (int i = 0; i < 70; ++i)
-         expectedResponse << "6;";
+         expectedTextResponse << "6;";
 
       auto [showResponse, showRespId] = proxy->PopNextCommand();
       ASSERT_TRUE(showResponse);
       EXPECT_EQ(cmd::ShowResponse::ID, showResponse->GetId());
       EXPECT_EQ(4u, showResponse->GetArgsCount());
-      EXPECT_STREQ(expectedResponse.str().c_str(), showResponse->GetArgAt(0).data());
+      EXPECT_STREQ(expectedTextResponse.str().c_str(), showResponse->GetArgAt(0).data());
       EXPECT_STREQ("D6", showResponse->GetArgAt(1).data());
       EXPECT_STREQ("70", showResponse->GetArgAt(2).data());
       EXPECT_STREQ("You", showResponse->GetArgAt(3).data());
@@ -1368,13 +1388,17 @@ TEST_F(P2R13, remote_generator_is_respected)
       EXPECT_STREQ("You", showRequest->GetArgAt(3).data());
       RespondOK(showReqId);
 
-      const char * expectedRequest = R"(<Request successFrom="3" size="1" type="D4" />)";
+      const auto expectedRequest = dice::Request{dice::MakeCast("D4", 1), 3u};
       for (const auto & peer : Peers()) {
          auto [sendRequest, id] = proxy->PopNextCommand();
          ASSERT_TRUE(sendRequest);
          EXPECT_EQ(cmd::SendMessage::ID, sendRequest->GetId());
          EXPECT_EQ(2U, sendRequest->GetArgsCount());
-         EXPECT_STREQ(expectedRequest, sendRequest->GetArgAt(0).data());
+
+         const auto actualRequest = serializer->Deserialize(sendRequest->GetArgAt(0));
+         EXPECT_TRUE(std::holds_alternative<dice::Request>(actualRequest));
+         EXPECT_EQ(expectedRequest, std::get<dice::Request>(actualRequest));
+
          EXPECT_STREQ(peer.mac.c_str(), sendRequest->GetArgAt(1).data());
          RespondOK(id);
       }
@@ -1386,7 +1410,11 @@ TEST_F(P2R13, remote_generator_is_respected)
       ASSERT_TRUE(sendRequest);
       EXPECT_EQ(cmd::SendMessage::ID, sendRequest->GetId());
       EXPECT_EQ(2U, sendRequest->GetArgsCount());
-      EXPECT_STREQ(expectedRequest, sendRequest->GetArgAt(0).data());
+
+      const auto actualRequest = serializer->Deserialize(sendRequest->GetArgAt(0));
+      EXPECT_TRUE(std::holds_alternative<dice::Request>(actualRequest));
+      EXPECT_EQ(expectedRequest, std::get<dice::Request>(actualRequest));
+
       EXPECT_STREQ(Peers()[1].mac.c_str(), sendRequest->GetArgAt(1).data());
       RespondOK(sendReqId);
       EXPECT_TRUE(proxy->NoCommands());
@@ -1495,13 +1523,17 @@ TEST_F(P2R15, renegotiates_when_generator_doesnt_answer_requests)
    RespondOK(showReqId);
 
    // sends request
-   const char * expectedRequest = R"(<Request successFrom="3" size="1" type="D4" />)";
+   const auto expectedRequest = dice::Request{dice::MakeCast("D4", 1), 3u};
    for (const auto & peer : Peers()) {
       auto [sendRequest, id] = proxy->PopNextCommand();
       ASSERT_TRUE(sendRequest);
       EXPECT_EQ(cmd::SendMessage::ID, sendRequest->GetId());
       EXPECT_EQ(2U, sendRequest->GetArgsCount());
-      EXPECT_STREQ(expectedRequest, sendRequest->GetArgAt(0).data());
+
+      const auto actualRequest = serializer->Deserialize(sendRequest->GetArgAt(0));
+      EXPECT_TRUE(std::holds_alternative<dice::Request>(actualRequest));
+      EXPECT_EQ(expectedRequest, std::get<dice::Request>(actualRequest));
+
       EXPECT_STREQ(peer.mac.c_str(), sendRequest->GetArgAt(1).data());
       RespondOK(id);
    }
@@ -1524,7 +1556,11 @@ TEST_F(P2R15, renegotiates_when_generator_doesnt_answer_requests)
       ASSERT_TRUE(sendRequest);
       EXPECT_EQ(cmd::SendMessage::ID, sendRequest->GetId());
       EXPECT_EQ(2U, sendRequest->GetArgsCount());
-      EXPECT_STREQ(expectedRequest, sendRequest->GetArgAt(0).data());
+
+      const auto actualRequest = serializer->Deserialize(sendRequest->GetArgAt(0));
+      EXPECT_TRUE(std::holds_alternative<dice::Request>(actualRequest));
+      EXPECT_EQ(expectedRequest, std::get<dice::Request>(actualRequest));
+
       EXPECT_STREQ(Peers()[0].mac.c_str(), sendRequest->GetArgAt(1).data());
       RespondOK(id);
       EXPECT_TRUE(proxy->NoCommands());
