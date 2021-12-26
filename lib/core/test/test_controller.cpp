@@ -447,16 +447,17 @@ TEST_F(ConnectingFixture, retries_to_start_listening_at_least_twice)
 
 TEST_F(ConnectingFixture, retries_to_start_discovery_at_least_twice)
 {
-   auto [cmdDiscovering, discId] = proxy->PopNextCommand();
-   ASSERT_TRUE(cmdDiscovering);
-   EXPECT_EQ(cmd::StartDiscovery::ID, cmdDiscovering->GetId());
-   auto [cmdListening, listId] = proxy->PopNextCommand();
-   ASSERT_TRUE(cmdListening);
-   EXPECT_EQ(cmd::StartListening::ID, cmdListening->GetId());
+   {
+      auto [cmdDiscovering, discId] = proxy->PopNextCommand();
+      ASSERT_TRUE(cmdDiscovering);
+      EXPECT_EQ(cmd::StartDiscovery::ID, cmdDiscovering->GetId());
+      auto [cmdListening, listId] = proxy->PopNextCommand();
+      ASSERT_TRUE(cmdListening);
+      EXPECT_EQ(cmd::StartListening::ID, cmdListening->GetId());
 
-   ctrl->OnCommandResponse(discId, cmd::ICommand::INVALID_STATE);
-   EXPECT_TRUE(proxy->NoCommands());
-
+      ctrl->OnCommandResponse(discId, cmd::ICommand::INVALID_STATE);
+      EXPECT_TRUE(proxy->NoCommands());
+   }
    timer->FastForwardTime(1s);
    {
       auto [cmdDiscovering, id] = proxy->PopNextCommand();
@@ -835,7 +836,7 @@ protected:
          EXPECT_EQ(cmd::SendMessage::ID, offer->GetId());
          EXPECT_EQ(2U, offer->GetArgsCount());
          EXPECT_STREQ(expectedOffer, offer->GetArgAt(0).data());
-         receiverMacs.template emplace(offer->GetArgAt(1));
+         receiverMacs.emplace(offer->GetArgAt(1));
          RespondOK(id);
       }
       for (const auto & device : Peers()) {

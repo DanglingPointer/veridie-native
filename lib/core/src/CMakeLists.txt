@@ -41,6 +41,7 @@ add_core_library(fakecore
         sign/commandpool.hpp
         sign/commands.hpp
         include/ctrl/controller.hpp
+        include/ctrl/timer.hpp
         include/dice/cast.hpp
         include/dice/engine.hpp
         include/dice/serializer.hpp

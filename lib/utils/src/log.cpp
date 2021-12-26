@@ -9,7 +9,7 @@ void StdLog(FILE * file, char what, const char * tag, const char * text)
 {
    char timeBuf[64];
    const std::time_t t = std::time(nullptr);
-   [[maybe_unused]] const int ret1 =
+   [[maybe_unused]] const size_t ret1 =
       std::strftime(std::data(timeBuf), std::size(timeBuf), "%F %T", std::gmtime(&t));
    assert(ret1 > 0);
 

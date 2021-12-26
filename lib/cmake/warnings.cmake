@@ -43,6 +43,8 @@ macro(set_warnings)
         # disable language extensions
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive-")
 
+        add_compile_definitions("_CRT_SECURE_NO_WARNINGS")
+
         if(treat_warnings_as_errors)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
         endif()

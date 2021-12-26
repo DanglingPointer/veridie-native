@@ -1,4 +1,5 @@
 #include "ctrl/controller.hpp"
+#include "ctrl/timer.hpp"
 #include "dice/engine.hpp"
 #include "dice/serializer.hpp"
 #include "sign/cmd.hpp"

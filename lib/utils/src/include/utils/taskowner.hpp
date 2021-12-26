@@ -21,7 +21,7 @@ public:
       std::erase_if(m_tasks, [](const TaskHandle<void, E> & t) {
          return !t;
       });
-      m_tasks.template emplace_back(std::move(task));
+      m_tasks.emplace_back(std::move(task));
       m_tasks.back().Run(m_executor);
    }
 

@@ -34,6 +34,7 @@
 
 CMakeLists.txt.user
 CMakeCache.txt
+CMakeSettings.json
 CMakeFiles
 CMakeScripts
 Testing
@@ -450,3 +451,4 @@ cmake-build-*/
 *.vcxproj*
 *.vdproj
 *.vcxitems
+out

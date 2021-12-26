@@ -337,17 +337,17 @@ cr::TaskHandle<void> StatePlaying::ShowResponse(const dice::Response & response,
    cmd::ShowResponseResponse responseCode;
 
    if (responseSize <= cmd::ShowResponse::MAX_BUFFER_SIZE / 3) {
-      responseCode =
-         co_await m_ctx.proxy.Command<cmd::ShowResponse>(response.cast,
-                                                         dice::TypeToString(response.cast),
-                                                         response.successCount.value_or(-1),
-                                                         from);
+      responseCode = co_await m_ctx.proxy.Command<cmd::ShowResponse>(
+         response.cast,
+         dice::TypeToString(response.cast),
+         static_cast<int32_t>(response.successCount.value_or(-1)),
+         from);
    } else {
-      responseCode =
-         co_await m_ctx.proxy.Command<cmd::ShowLongResponse>(response.cast,
-                                                             dice::TypeToString(response.cast),
-                                                             response.successCount.value_or(-1),
-                                                             from);
+      responseCode = co_await m_ctx.proxy.Command<cmd::ShowLongResponse>(
+         response.cast,
+         dice::TypeToString(response.cast),
+         static_cast<int32_t>(response.successCount.value_or(-1)),
+         from);
    }
 
    if (responseCode != cmd::ShowResponseResponse::OK)
