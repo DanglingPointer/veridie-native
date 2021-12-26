@@ -748,7 +748,7 @@ TEST_F(ConnectingFixture, does_not_negotiate_with_disconnected)
    // 5c:b9:01:f8:b6:43 <-- round 2
    // 5c:b9:01:f8:b6:44
    const char * expectedOffer = R"(<Offer round="2"><Mac>5c:b9:01:f8:b6:43</Mac></Offer>)";
-   ASSERT_EQ(2, fsm::g_negotiationRound);
+   ASSERT_EQ(2u, fsm::g_negotiationRound);
 
    // local offer is being broadcast, the order is compiler-dependent
    std::vector<mem::pool_ptr<cmd::ICommand>> cmds;
@@ -1638,8 +1638,10 @@ using P2R21 = PlayingFixture<2u, 21u>;
 TEST_F(P2R21, goes_to_idle_from_mid_game_negotiation_if_game_stopped)
 {
    timer->FastForwardTime(10s);
-   std::string offer = R"(<Offer round="19"><Mac>)" + Peers()[1].mac + "</Mac></Offer>";
-   ctrl->OnEvent(event::MessageReceived::ID, {offer, Peers()[0].mac, ""});
+   {
+      std::string offer = R"(<Offer round="19"><Mac>)" + Peers()[1].mac + "</Mac></Offer>";
+      ctrl->OnEvent(event::MessageReceived::ID, {offer, Peers()[0].mac, ""});
+   }
 
    timer->FastForwardTime();
    auto [negotiationStart, negStartId] = proxy->PopNextCommand();

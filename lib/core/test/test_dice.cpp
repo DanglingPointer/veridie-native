@@ -59,9 +59,10 @@ TEST(DiceTest, serialize_request_with_success_from)
    try {
       auto cast = dice::MakeCast("D4", 10);
       dice::Request request{std::move(cast), 3};
-      std::string expected = R"(<Request successFrom="3" size="10" type="D4" />)";
+      std::string expected1 = R"(<Request successFrom="3" size="10" type="D4" />)";
+      std::string expected2 = R"(<Request type="D4" size="10" successFrom="3" />)";
       std::string actual = slzr->Serialize(request);
-      EXPECT_EQ(expected, actual);
+      EXPECT_TRUE(actual == expected1 || actual == expected2) << actual;
    }
    catch (const std::invalid_argument & e) {
       ADD_FAILURE() << e.what();
@@ -110,7 +111,7 @@ TEST(DiceTest, deserialize_response_with_success_count)
       auto * cast = std::get_if<dice::D12>(&(r->cast));
       EXPECT_TRUE(cast);
       EXPECT_EQ(5U, cast->size());
-      for (int i = 0; i < 5; ++i) {
+      for (uint32_t i = 0; i < 5; ++i) {
          EXPECT_EQ(i + 1, cast->at(i));
       }
       EXPECT_TRUE(r->successCount);
@@ -140,7 +141,7 @@ TEST(DiceTest, deserialize_response_without_success_count)
       auto * cast = std::get_if<dice::D12>(&(r->cast));
       EXPECT_TRUE(cast);
       EXPECT_EQ(5U, cast->size());
-      for (int i = 0; i < 5; ++i) {
+      for (uint32_t i = 0; i < 5; ++i) {
          EXPECT_EQ(i + 1, cast->at(i));
       }
       EXPECT_FALSE(r->successCount);
