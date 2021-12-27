@@ -18,19 +18,10 @@ inline bool operator==(const Device & lhs, const Device & rhs)
    return lhs.mac == rhs.mac;
 }
 
-#ifdef _LIBCPP_VERSION
-inline std::weak_ordering operator<=>(const Device & lhs, const Device & rhs)
-{
-   if (lhs.mac == rhs.mac)
-      return std::weak_ordering::equivalent;
-   return lhs.mac > rhs.mac ? std::weak_ordering::greater : std::weak_ordering::less;
-}
-#else
 inline auto operator<=>(const Device & lhs, const Device & rhs)
 {
    return operator<=>(lhs.mac, rhs.mac);
 }
-#endif
 } // namespace bt
 
 namespace std {
