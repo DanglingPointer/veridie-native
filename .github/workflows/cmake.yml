@@ -21,18 +21,11 @@ jobs:
         include:
         - os: ubuntu-latest
           compiler: g++-10
-          #builddir: ${{github.workspace}}/build
-          #cmakepath: lib/CMakeLists.txt
 
         - os: ubuntu-latest
           compiler: clang++-12
-          #builddir: ${{github.workspace}}/build
-          #cmakepath: lib/CMakeLists.txt
 
         - os: windows-latest
-          #compiler: g++-10
-          #builddir: ${{github.workspace}}\build
-          #cmakepath: lib\CMakeLists.txt
 
     steps:
     - uses: actions/checkout@v2
