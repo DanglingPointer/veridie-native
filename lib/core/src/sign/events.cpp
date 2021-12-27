@@ -10,7 +10,7 @@ bool RemoteDeviceConnected::Handle(fsm::StateBase & s, const std::vector<std::st
    // "mac", "name"
    if (args.size() < 2 || args[0].empty())
       return false;
-   bt::Device device(args[1], args[0]);
+   bt::Device device{args[1], args[0]};
    s.OnDeviceConnected(device);
    return true;
 }
@@ -20,7 +20,7 @@ bool RemoteDeviceDisconnected::Handle(fsm::StateBase & s, const std::vector<std:
    // "mac", "name"
    if (args.size() < 2 || args[0].empty())
       return false;
-   bt::Device device(args[1], args[0]);
+   bt::Device device{args[1], args[0]};
    s.OnDeviceDisconnected(device);
    return true;
 }
@@ -43,7 +43,7 @@ bool MessageReceived::Handle(fsm::StateBase & s, const std::vector<std::string> 
    if (args.size() < 3)
       return false;
 
-   bt::Device sender(args[2], args[1]);
+   bt::Device sender{args[2], args[1]};
    s.OnMessageReceived(sender, args[0]);
    return true;
 }
@@ -90,7 +90,7 @@ bool SocketReadFailed::Handle(fsm::StateBase & s, const std::vector<std::string>
    // "mac", "name"
    if (args.size() < 2 || args[0].empty())
       return false;
-   bt::Device device(args[1], args[0]);
+   bt::Device device{args[1], args[0]};
    s.OnSocketReadFailure(device);
    return true;
 }

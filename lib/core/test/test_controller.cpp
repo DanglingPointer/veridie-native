@@ -800,8 +800,8 @@ protected:
       StartDiscoveryAndListening();
 
       for (size_t i = 0; i < peersCount; ++i)
-         peers.emplace_back("Charlie Chaplin " + std::to_string(i),
-                            "5c:b9:01:f8:b6:4" + std::to_string(i));
+         peers.emplace_back(bt::Device{"Charlie Chaplin " + std::to_string(i),
+                                       "5c:b9:01:f8:b6:4" + std::to_string(i)});
 
       for (const auto & peer : peers) {
          ctrl->OnEvent(event::RemoteDeviceConnected::ID, {peer.mac, peer.name});

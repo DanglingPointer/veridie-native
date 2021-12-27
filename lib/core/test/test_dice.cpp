@@ -156,8 +156,12 @@ TEST(DiceTest, serialize_response_with_success_count)
                               "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
                               "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
                               "</Response>";
+      std::string expected3 = "<Response successCount=\"10\" size=\"10\" type=\"D6\">"
+                              "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                              "<Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val><Val>3</Val>"
+                              "</Response>";
       std::string actual = slzr->Serialize(response);
-      EXPECT_TRUE(expected1 == actual || expected2 == actual) << actual;
+      EXPECT_TRUE(expected1 == actual || expected2 == actual || expected3 == actual) << actual;
    }
    catch (const std::invalid_argument & e) {
       ADD_FAILURE() << e.what();

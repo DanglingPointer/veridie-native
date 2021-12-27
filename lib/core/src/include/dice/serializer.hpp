@@ -3,7 +3,6 @@
 
 #include "dice/cast.hpp"
 
-#include <compare>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -25,7 +24,7 @@ struct Response
    dice::Cast cast;
    std::optional<size_t> successCount;
 
-   auto operator<=>(const Response & rhs) const = default;
+   bool operator==(const Response & rhs) const = default;
 };
 
 struct Hello
