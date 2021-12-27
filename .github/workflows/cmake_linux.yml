@@ -1,4 +1,4 @@
-name: VeriDie
+name: Linux build
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
     branches: [ master ]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: RelWithDebInfo
 
 jobs:
@@ -29,17 +28,11 @@ jobs:
         sudo apt install gcc-10 g++-10 clang-12 libc++-12-dev libc++abi-12-dev
 
     - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: cmake lib/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -Dveridie_build_tests=ON -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
 
     - name: Build
-      # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Test
       working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.  
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest -VV -C ${{env.BUILD_TYPE}}
-      
