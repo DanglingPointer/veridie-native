@@ -10,7 +10,7 @@ namespace internal {
 template <typename T>
 class Deleter
 {
-   using DeleterFn = void(*)(void *, void *);
+   using DeleterFn = void (*)(void *, void *);
 
    template <typename U>
    friend class Deleter;
@@ -22,24 +22,21 @@ public:
    {}
    Deleter()
       : m_pool(nullptr)
-      , m_dealloc([](auto, auto){})
+      , m_dealloc([](auto, auto) {})
    {}
    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U *, T *>>>
    Deleter(const Deleter<U> & other)
       : m_pool(other.m_pool)
       , m_dealloc(other.m_dealloc)
    {}
-   void operator()(T * obj) const
-   {
-      m_dealloc(m_pool, obj);
-   }
+   void operator()(T * obj) const { m_dealloc(m_pool, obj); }
 
 private:
    void * m_pool;
    DeleterFn m_dealloc;
 };
 
-} // internal
+} // namespace internal
 
 template <typename T>
 using PoolPtr = std::unique_ptr<T, internal::Deleter<T>>;
@@ -47,6 +44,6 @@ using PoolPtr = std::unique_ptr<T, internal::Deleter<T>>;
 template <typename T>
 using pool_ptr = std::unique_ptr<T, internal::Deleter<T>>;
 
-} // mem
+} // namespace mem
 
 #endif // POOLPTR_HPP

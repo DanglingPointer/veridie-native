@@ -26,7 +26,7 @@ struct Block
 template <size_t N, typename T>
 Block<N> * get_block(T * ptr) noexcept
 {
-   return reinterpret_cast<Block<N> *>( reinterpret_cast<char *>(ptr) - offsetof(Block<N>, buffer) );
+   return reinterpret_cast<Block<N> *>(reinterpret_cast<char *>(ptr) - offsetof(Block<N>, buffer));
 }
 template <size_t N>
 void * get_buffer(Block<N> & block) noexcept
@@ -46,16 +46,16 @@ template <typename P, typename T>
 struct PoolFinder<P, T, false>
 {
    using BasePool = typename P::Base;
-   using Type = typename PoolFinder<BasePool , T, (sizeof(T) <= BasePool::BLOCK_SIZE)>::Type;
+   using Type = typename PoolFinder<BasePool, T, (sizeof(T) <= BasePool::BLOCK_SIZE)>::Type;
 };
 template <typename P, typename T>
 using SuitablePool = typename PoolFinder<P, T, (sizeof(T) <= P::BLOCK_SIZE)>::Type;
 
-} // internal
+} // namespace internal
 
 
-// All methods in Pool must be called from the same thread, but a PoolPtr obtained through Pool::Make can be
-// marshalled to any other thread and die wherever it wants.
+// All methods in Pool must be called from the same thread, but a PoolPtr obtained through
+// Pool::Make can be marshalled to any other thread and die wherever it wants.
 
 template <size_t... Ss>
 class Pool;
@@ -83,12 +83,10 @@ public:
    {
       using P = internal::SuitablePool<Myt, T>;
 
-      internal::Deleter<T> deleter(this, [] (void * pool, void * obj) {
+      internal::Deleter<T> deleter(this, [](void * pool, void * obj) {
          static_cast<Myt *>(pool)->P::Deallocate(static_cast<T *>(obj));
       });
-      return PoolPtr<T>(
-         P::template Allocate<T>(std::forward<TArgs>(args)...),
-         deleter);
+      return PoolPtr<T>(P::template Allocate<T>(std::forward<TArgs>(args)...), deleter);
    }
 
    template <typename T, typename... TArgs>
@@ -96,18 +94,16 @@ public:
    {
       using P = internal::SuitablePool<Myt, T>;
 
-      auto deallocator = [this] (T * obj) {
+      auto deallocator = [this](T * obj) {
          this->P::Deallocate(obj);
       };
-      return std::shared_ptr<T>(
-         P::template Allocate<T>(std::forward<TArgs>(args)...),
-         deallocator);
+      return std::shared_ptr<T>(P::template Allocate<T>(std::forward<TArgs>(args)...), deallocator);
    }
 
    void ShrinkToFit()
    {
       Base::ShrinkToFit();
-      m_blocks.remove_if([] (Block & b) {
+      m_blocks.remove_if([](Block & b) {
          return !b.taken.test_and_set(std::memory_order_acquire);
       });
    }
@@ -123,23 +119,18 @@ public:
          --extra_blocks;
       }
       if (extra_blocks < 0) {
-         m_blocks.remove_if([&] (Block & b) {
-            bool should_remove = extra_blocks < 0 && !b.taken.test_and_set(std::memory_order_acquire);
+         m_blocks.remove_if([&](Block & b) {
+            bool should_remove =
+               extra_blocks < 0 && !b.taken.test_and_set(std::memory_order_acquire);
             extra_blocks += should_remove;
             return should_remove;
          });
       }
    }
 
-   size_t GetBlockCount() const noexcept
-   {
-      return Base::GetBlockCount() + m_blocks.size();
-   }
+   size_t GetBlockCount() const noexcept { return Base::GetBlockCount() + m_blocks.size(); }
 
-   size_t GetSize() const noexcept
-   {
-      return Base::GetSize() + m_blocks.size() * BLOCK_SIZE;
-   }
+   size_t GetSize() const noexcept { return Base::GetSize() + m_blocks.size() * BLOCK_SIZE; }
 
 protected:
    template <typename T, typename... TArgs>
@@ -161,7 +152,7 @@ protected:
          it->taken.test_and_set(std::memory_order_acquire);
       }
       try {
-         ret = new(internal::get_buffer(*it)) T(std::forward<TArgs>(args)...);
+         ret = new (internal::get_buffer(*it)) T(std::forward<TArgs>(args)...);
       }
       catch (...) {
          it->taken.clear(std::memory_order_release);
@@ -192,8 +183,7 @@ public:
    static constexpr size_t BLOCK_SIZE = std::numeric_limits<size_t>::max();
 
 protected:
-   explicit Pool(size_t)
-   {}
+   explicit Pool(size_t) {}
 
    template <typename T, typename... TArgs>
    T * Allocate(TArgs &&...)
@@ -218,6 +208,6 @@ protected:
    size_t GetSize() const noexcept { return 0U; }
 };
 
-} // mem
+} // namespace mem
 
 #endif // MEMPOOL_HPP

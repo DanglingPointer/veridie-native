@@ -610,7 +610,7 @@ TEST_F(TaskHandleFixture, task_owner_starts_a_task)
       stdcr::coroutine_handle<> handle = nullptr;
    } state;
 
-   static auto VoidTask = [] (State & s) -> cr::TaskHandle<void> {
+   static auto VoidTask = [](State & s) -> cr::TaskHandle<void> {
       s.beforeSuspend = true;
       co_await Awaitable<State>{s};
       s.afterSuspend = true;
@@ -640,7 +640,7 @@ TEST_F(TaskHandleFixture, task_owner_cancels_tasks_when_dies)
       stdcr::coroutine_handle<> handle = nullptr;
    } state;
 
-   static auto VoidTask = [] (State & s) -> cr::TaskHandle<void> {
+   static auto VoidTask = [](State & s) -> cr::TaskHandle<void> {
       s.beforeSuspend = true;
       co_await Awaitable<State>{s};
       s.afterSuspend = true;
@@ -673,13 +673,13 @@ TEST_F(TaskHandleFixture, task_owner_starts_a_nested_task)
 
    cr::TaskOwner<> owner;
 
-   static auto InnerVoidTask = [] (State & s) -> cr::TaskHandle<void> {
+   static auto InnerVoidTask = [](State & s) -> cr::TaskHandle<void> {
       s.beforeSuspend = true;
       co_await Awaitable<State>{s};
       s.afterSuspend = true;
    };
 
-   auto OuterVoidTask = [&owner] (State & sInner, State & sOuter) -> cr::TaskHandle<void> {
+   auto OuterVoidTask = [&owner](State & sInner, State & sOuter) -> cr::TaskHandle<void> {
       co_await owner.StartNestedTask(InnerVoidTask(sInner));
       sOuter.beforeSuspend = true;
       co_await Awaitable<State>{sOuter};
@@ -726,13 +726,13 @@ TEST_F(TaskHandleFixture, task_owner_cancels_nested_task_when_dies)
    std::optional<cr::TaskOwner<>> owner;
    owner.emplace();
 
-   static auto InnerVoidTask = [] (State & s) -> cr::TaskHandle<void> {
+   static auto InnerVoidTask = [](State & s) -> cr::TaskHandle<void> {
       s.beforeSuspend = true;
       co_await Awaitable<State>{s};
       s.afterSuspend = true;
    };
 
-   auto OuterVoidTask = [&owner] (State & sInner, State & sOuter) -> cr::TaskHandle<void> {
+   auto OuterVoidTask = [&owner](State & sInner, State & sOuter) -> cr::TaskHandle<void> {
       co_await owner->StartNestedTask(InnerVoidTask(sInner));
       sOuter.beforeSuspend = true;
       co_await Awaitable<State>{sOuter};

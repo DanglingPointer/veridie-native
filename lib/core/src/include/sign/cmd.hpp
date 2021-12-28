@@ -4,8 +4,7 @@
 #include <cstdint>
 #include <string_view>
 
-#define COMMAND_ID(id) \
-   (id << 8)
+#define COMMAND_ID(id) (id << 8)
 
 namespace cmd {
 
@@ -13,7 +12,8 @@ class ICommand
 {
 public:
    // response codes must be in sync with interop/Command.java
-   enum ResponseCode : int64_t {
+   enum ResponseCode : int64_t
+   {
       OK = 0,
       INVALID_STATE = -1,
       INTEROP_FAILURE = -2,

@@ -126,7 +126,7 @@ struct PoolFromSeq<Sequence<Ss...>>
 template <typename IntegerSeq>
 using PoolFromSeq_t = typename PoolFromSeq<IntegerSeq>::Result;
 
-} // internal
+} // namespace internal
 
 template <typename... TArgs>
 class PoolBuilder
@@ -137,12 +137,11 @@ class PoolBuilder
 
 public:
    using Type = internal::PoolFromSeq_t<SortedSequence>;
-
 };
 
 template <typename... TArgs>
 using PoolSuitableFor = typename PoolBuilder<TArgs...>::Type;
 
-} // mem
+} // namespace mem
 
 #endif

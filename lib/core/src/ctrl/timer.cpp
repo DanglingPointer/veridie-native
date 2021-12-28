@@ -32,4 +32,4 @@ cr::TaskHandle<Timeout> Timer::WaitFor(std::chrono::milliseconds delay)
    co_return co_await FutureTimeout(*this, delay);
 }
 
-} // namespace async
+} // namespace core

@@ -28,6 +28,6 @@ private:
    const std::function<void(Task &&, std::chrono::milliseconds)> m_scheduler;
 };
 
-} // namespace async
+} // namespace core
 
 #endif

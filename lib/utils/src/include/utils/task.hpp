@@ -20,6 +20,8 @@ struct InlineExecutor
    }
 };
 
+// clang-format off
+
 template <typename T>
 concept TaskResult = std::is_move_constructible_v<T> || std::is_same_v<T, void>;
 
@@ -74,6 +76,7 @@ template <TaskResult T, Executor E>
 struct Promise;
 } // namespace internal
 
+// clang-format on
 
 struct DetachedHandle
 {
@@ -117,9 +120,15 @@ struct DetachedPromise
    void unhandled_exception() const { throw; }
    void return_void() noexcept {}
    template <Awaiter A>
-   decltype(auto) await_transform(A && a) { return std::forward<A>(a); }
+   decltype(auto) await_transform(A && a)
+   {
+      return std::forward<A>(a);
+   }
    template <TaskResult T, Executor E>
-   auto await_transform(TaskHandle<T, E> && handle) { return handle.Run(); }
+   auto await_transform(TaskHandle<T, E> && handle)
+   {
+      return handle.Run();
+   }
 };
 
 template <TaskResult T>
@@ -145,7 +154,9 @@ struct ValueHolder<void>
 };
 
 template <TaskResult T, Executor E>
-struct Promise : public ValueHolder<T>, public E
+struct Promise
+   : public ValueHolder<T>
+   , public E
 {
    template <Awaiter A>
    struct CancelingAwaiter : A

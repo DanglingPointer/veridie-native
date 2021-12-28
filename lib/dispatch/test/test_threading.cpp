@@ -17,7 +17,9 @@ TEST(WorkerTest, worker_executes_instantaneous_task_within_100ms)
 
    std::promise<void> done;
    auto future = done.get_future();
-   w.Schedule([&] { done.set_value(); });
+   w.Schedule([&] {
+      done.set_value();
+   });
 
    auto status = future.wait_for(100ms);
    EXPECT_EQ(std::future_status::ready, status);
@@ -46,7 +48,9 @@ std::unique_ptr<Worker> CreateReadyWorker(size_t capacity)
 
    std::promise<void> ready;
    std::future<void> f = ready.get_future();
-   w->Schedule([&] { ready.set_value(); });
+   w->Schedule([&] {
+      ready.set_value();
+   });
 
    auto status = f.wait_for(1s);
    EXPECT_EQ(std::future_status::ready, status);
@@ -68,7 +72,9 @@ TEST(WorkerTest, worker_executes_in_correct_order)
       EXPECT_TRUE(done2);
       finished.set_value();
    });
-   w->Schedule([&] { done1 = true; });
+   w->Schedule([&] {
+      done1 = true;
+   });
    w->Schedule([&] {
       EXPECT_TRUE(done1);
       done2 = true;
@@ -103,11 +109,11 @@ TEST(WorkerTest, worker_handles_uncaught_exceptions)
    std::promise<void> done;
    auto future = done.get_future();
 
-   Worker w({"test worker", 1, [&] (std::string_view name, std::string_view what) {
-      workerName = name;
-      exceptionWhat = what;
-      done.set_value();
-   }});
+   Worker w({"test worker", 1, [&](std::string_view name, std::string_view what) {
+                workerName = name;
+                exceptionWhat = what;
+                done.set_value();
+             }});
    w.Schedule([] {
       throw std::runtime_error("test exception");
    });
