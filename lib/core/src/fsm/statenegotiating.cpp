@@ -37,7 +37,7 @@ StateNegotiating::StateNegotiating(const fsm::Context & ctx,
       m_offers.insert_or_assign(m_localMac, dice::Offer{"", ++g_negotiationRound});
    localOffer->second.mac = GetLocalOfferMac();
 
-   StartTask(StartNegotiation());
+   StartRootTask(StartNegotiation());
 }
 
 StateNegotiating::StateNegotiating(const Context & ctx,
@@ -83,7 +83,7 @@ void StateNegotiating::OnGameStopped()
 void StateNegotiating::OnSocketReadFailure(const bt::Device & from)
 {
    if (m_peers.count(from)) {
-      StartTask(DisconnectDevice(from.mac));
+      StartRootTask(DisconnectDevice(from.mac));
       m_peers.erase(from);
       m_offers.erase(from.mac);
    }

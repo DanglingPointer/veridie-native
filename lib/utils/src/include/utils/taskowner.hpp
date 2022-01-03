@@ -15,7 +15,7 @@ public:
       : m_executor(executor)
    {}
 
-   void StartTask(TaskHandle<void, E> && task)
+   void StartRootTask(TaskHandle<void, E> && task)
    {
       RethrowExceptions();
       std::erase_if(m_tasks, [](const TaskHandle<void, E> & t) {
@@ -35,7 +35,7 @@ public:
          bool await_ready() noexcept { return false; }
          bool await_suspend(stdcr::coroutine_handle<>)
          {
-            owner.StartTask(std::move(task));
+            owner.StartRootTask(std::move(task));
             return false;
          }
          void await_resume() noexcept {}

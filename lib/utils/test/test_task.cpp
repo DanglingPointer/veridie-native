@@ -617,7 +617,7 @@ TEST_F(TaskHandleFixture, task_owner_starts_a_task)
    };
 
    cr::TaskOwner<> owner;
-   owner.StartTask(VoidTask(state));
+   owner.StartRootTask(VoidTask(state));
 
    EXPECT_TRUE(state.beforeSuspend);
    EXPECT_FALSE(state.afterSuspend);
@@ -648,7 +648,7 @@ TEST_F(TaskHandleFixture, task_owner_cancels_tasks_when_dies)
 
    std::optional<cr::TaskOwner<>> owner;
    owner.emplace();
-   owner->StartTask(VoidTask(state));
+   owner->StartRootTask(VoidTask(state));
 
    EXPECT_TRUE(state.beforeSuspend);
    EXPECT_FALSE(state.afterSuspend);
@@ -686,7 +686,7 @@ TEST_F(TaskHandleFixture, task_owner_starts_a_nested_task)
       sOuter.afterSuspend = true;
    };
 
-   owner.StartTask(OuterVoidTask(stateInner, stateOuter));
+   owner.StartRootTask(OuterVoidTask(stateInner, stateOuter));
 
    EXPECT_TRUE(stateOuter.beforeSuspend);
    EXPECT_FALSE(stateOuter.afterSuspend);
@@ -739,7 +739,7 @@ TEST_F(TaskHandleFixture, task_owner_cancels_nested_task_when_dies)
       sOuter.afterSuspend = true;
    };
 
-   owner->StartTask(OuterVoidTask(stateInner, stateOuter));
+   owner->StartRootTask(OuterVoidTask(stateInner, stateOuter));
 
    EXPECT_TRUE(stateOuter.beforeSuspend);
    EXPECT_FALSE(stateOuter.afterSuspend);

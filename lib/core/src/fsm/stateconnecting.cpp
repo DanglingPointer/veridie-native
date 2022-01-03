@@ -32,8 +32,8 @@ StateConnecting::StateConnecting(const Context & ctx)
    : m_ctx(ctx)
 {
    Log::Info(TAG, "New state: {}", __func__);
-   StartTask(KickOffDiscovery());
-   StartTask(KickOffListening());
+   StartRootTask(KickOffDiscovery());
+   StartRootTask(KickOffListening());
 }
 
 StateConnecting::~StateConnecting()
@@ -52,7 +52,7 @@ void StateConnecting::OnBluetoothOff()
 void StateConnecting::OnDeviceConnected(const bt::Device & remote)
 {
    m_peers.insert(remote);
-   StartTask(SendHelloTo(remote.mac));
+   StartRootTask(SendHelloTo(remote.mac));
 }
 
 void StateConnecting::OnDeviceDisconnected(const bt::Device & remote)
@@ -82,7 +82,7 @@ void StateConnecting::OnSocketReadFailure(const bt::Device & from)
 {
    if (m_peers.count(from)) {
       m_peers.erase(from);
-      StartTask(DisconnectDevice(from.mac));
+      StartRootTask(DisconnectDevice(from.mac));
    }
 }
 

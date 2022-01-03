@@ -94,12 +94,12 @@ bool StatePlaying::RemotePeerManager::IsGenerator() const
 void StatePlaying::RemotePeerManager::SendRequest(const std::string & request)
 {
    m_pendingRequest = true;
-   StartTask(m_isGenerator ? SendRequestToGenerator(request) : Send(request));
+   StartRootTask(m_isGenerator ? SendRequestToGenerator(request) : Send(request));
 }
 
 void StatePlaying::RemotePeerManager::SendResponse(const std::string & response)
 {
-   StartTask(Send(response));
+   StartRootTask(Send(response));
 }
 
 void StatePlaying::RemotePeerManager::OnReceptionSuccess(bool answeredRequest)
@@ -232,19 +232,19 @@ void StatePlaying::OnMessageReceived(const bt::Device & sender, const std::strin
          if (Matches(*response, m_pendingRequest.get()))
             m_pendingRequest = nullptr;
          mgr->second.OnReceptionSuccess(m_pendingRequest == nullptr);
-         StartTask(ShowResponse(*response, mgr->second.GetDevice().name));
+         StartRootTask(ShowResponse(*response, mgr->second.GetDevice().name));
          return;
       }
 
       if (auto * request = std::get_if<dice::Request>(&parsed)) {
          mgr->second.OnReceptionSuccess(m_pendingRequest == nullptr);
-         StartTask(ShowRequest(*request, mgr->second.GetDevice().name));
+         StartRootTask(ShowRequest(*request, mgr->second.GetDevice().name));
          if (m_localGenerator) {
             dice::Response response = GenerateResponse(*m_ctx.generator, std::move(*request));
             std::string encoded = m_ctx.serializer->Serialize(response);
             for (auto & [_, peer] : m_managers)
                peer.SendResponse(encoded);
-            StartTask(ShowResponse(response, "You"));
+            StartRootTask(ShowResponse(response, "You"));
          }
          return;
       }
@@ -256,7 +256,7 @@ void StatePlaying::OnMessageReceived(const bt::Device & sender, const std::strin
 
 void StatePlaying::OnCastRequest(dice::Request && localRequest)
 {
-   StartTask(ShowRequest(localRequest, "You"));
+   StartRootTask(ShowRequest(localRequest, "You"));
 
    std::string encodedRequest = m_ctx.serializer->Serialize(localRequest);
    for (auto & [_, mgr] : m_managers)
@@ -267,7 +267,7 @@ void StatePlaying::OnCastRequest(dice::Request && localRequest)
       std::string encodedResponse = m_ctx.serializer->Serialize(response);
       for (auto & [_, mgr] : m_managers)
          mgr.SendResponse(encodedResponse);
-      StartTask(ShowResponse(response, "You"));
+      StartRootTask(ShowResponse(response, "You"));
    } else {
       m_pendingRequest = std::make_unique<dice::Request>(std::move(localRequest));
    }
