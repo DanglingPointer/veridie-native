@@ -343,4 +343,45 @@ TEST_F(ManagerFixture, cmd_manager_doesnt_increment_id_on_invoker_failure)
    EXPECT_EQ(42, response2);
 }
 
+TEST_F(ManagerFixture, cmd_manager_erases_canceled_command_once_when_dies)
+{
+   auto CoawaitCommand = [this](mem::pool_ptr<ICommand> cmd) -> cr::TaskHandle<int64_t> {
+      co_return co_await manager->IssueBtCommand(std::move(cmd));
+   };
+
+   auto cmd = pool.MakeUnique<TestCommand>(StartListening::ID);
+   auto task = CoawaitCommand(std::move(cmd));
+   task.Run();
+
+   EXPECT_EQ(1, btInvoker->receivedCommands.size());
+   EXPECT_EQ(StartListening::ID, btInvoker->receivedCommands.back().id);
+
+   task = {};
+   manager.reset();
+
+   // no segfault => success
+   SUCCEED();
+}
+
+TEST_F(ManagerFixture, cmd_manager_erases_canceled_command_once_when_response_arrives)
+{
+   auto CoawaitCommand = [this](mem::pool_ptr<ICommand> cmd) -> cr::TaskHandle<int64_t> {
+      co_return co_await manager->IssueBtCommand(std::move(cmd));
+   };
+
+   auto cmd = pool.MakeUnique<TestCommand>(StartListening::ID);
+   auto task = CoawaitCommand(std::move(cmd));
+   task.Run();
+
+   EXPECT_EQ(1, btInvoker->receivedCommands.size());
+   EXPECT_EQ(StartListening::ID, btInvoker->receivedCommands.back().id);
+
+   task = {};
+   manager->SubmitResponse(StartListening::ID, ICommand::OK);
+   manager.reset();
+
+   // no segfault => success
+   SUCCEED();
+}
+
 } // namespace

@@ -204,7 +204,7 @@ TEST_F(TaskHandleFixture, task_resumes_outer_task)
    EXPECT_EQ(0, state.count);
 }
 
-TEST_F(TaskHandleFixture, canceled_task_doesnt_run_once_resumed)
+TEST_F(TaskHandleFixture, canceled_tasks_dont_run_once_resumed)
 {
    struct State
    {
@@ -236,7 +236,7 @@ TEST_F(TaskHandleFixture, canceled_task_doesnt_run_once_resumed)
    task = {};
    state.handle.resume();
    EXPECT_FALSE(state.afterOuterSuspend);
-   EXPECT_TRUE(state.afterInnerSuspend);
+   EXPECT_FALSE(state.afterInnerSuspend);
    EXPECT_EQ(0, state.count);
 }
 
@@ -336,6 +336,47 @@ TEST_F(TaskHandleFixture, three_nested_tasks_resume_each_other)
    state.handle.resume();
    EXPECT_EQ(42, state.innerValue);
    EXPECT_STREQ("42", state.middleValue.c_str());
+}
+
+TEST_F(TaskHandleFixture, three_nested_tasks_cancel_each_other)
+{
+   struct State
+   {
+      stdcr::coroutine_handle<> handle = nullptr;
+      std::string middleResult;
+      int innerResult = 0;
+      const char * innerIntermediate = nullptr;
+   } state;
+
+   auto StartInnerIntOperation = [](State & s) -> cr::TaskHandle<int> {
+      co_await Awaitable<State>{s};
+      s.innerIntermediate = "Hello World";
+      co_return 42;
+   };
+
+   auto StartMiddleStringOperation = [=](State & s) -> cr::TaskHandle<std::string> {
+      int result = co_await StartInnerIntOperation(s);
+      s.innerResult = result;
+      co_return std::to_string(result);
+   };
+
+   auto StartOuterVoidOperation = [=](State & s) -> cr::TaskHandle<void> {
+      std::string result = co_await StartMiddleStringOperation(s);
+      s.middleResult = result;
+   };
+
+   auto task = StartOuterVoidOperation(state);
+   task.Run();
+   EXPECT_TRUE(state.handle);
+   EXPECT_EQ(0, state.innerResult);
+   EXPECT_EQ(nullptr, state.innerIntermediate);
+   EXPECT_TRUE(state.middleResult.empty());
+
+   task = {};
+   state.handle.resume();
+   EXPECT_EQ(0, state.innerResult);
+   EXPECT_EQ(nullptr, state.innerIntermediate);
+   EXPECT_TRUE(state.middleResult.empty());
 }
 
 struct ManualDispatcher

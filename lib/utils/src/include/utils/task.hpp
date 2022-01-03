@@ -101,7 +101,7 @@ struct TaskHandle
    TaskHandle & operator=(TaskHandle && other) noexcept;
 
    explicit operator bool() const noexcept;
-   auto Run(E executor = {});
+   auto Run(E executor = {}, const bool * parentCanceled = nullptr);
    void EnsureNoException();
    void Swap(TaskHandle & other) noexcept;
 
@@ -164,13 +164,14 @@ struct Promise
       const Promise & p;
       decltype(auto) await_resume()
       {
-         if (p.canceled)
+         if (p.canceled || (p.parentCanceled && *p.parentCanceled))
             throw CanceledException{};
          return A::await_resume();
       }
    };
 
    bool canceled = false;
+   const bool * parentCanceled = nullptr;
    stdcr::coroutine_handle<> parentHandle = nullptr;
 
    const E & Executor() const noexcept { return static_cast<const E &>(*this); }
@@ -193,7 +194,9 @@ struct Promise
    auto await_transform(TaskHandle<R, E> && innerTask) const
    {
       using InnerAwaiter = std::remove_reference_t<decltype(innerTask.Run())>;
-      return CancelingAwaiter<InnerAwaiter>{innerTask.Run(Executor()), *this};
+      return CancelingAwaiter<InnerAwaiter>{
+         innerTask.Run(Executor(), parentCanceled ? parentCanceled : &canceled),
+         *this};
    }
 
    auto initial_suspend() noexcept
@@ -206,7 +209,7 @@ struct Promise
          void await_suspend(stdcr::coroutine_handle<>) const noexcept {}
          void await_resume() const
          {
-            if (p.canceled)
+            if (p.canceled || (p.parentCanceled && *p.parentCanceled))
                throw CanceledException{};
          }
       };
@@ -281,9 +284,10 @@ TaskHandle<T, E>::operator bool() const noexcept
 }
 
 template <TaskResult T, Executor E>
-auto TaskHandle<T, E>::Run(E executor)
+auto TaskHandle<T, E>::Run(E executor, const bool * parentCanceled)
 {
    m_handle.promise().Executor() = executor;
+   m_handle.promise().parentCanceled = parentCanceled;
    m_handle.promise().Executor().Execute(m_handle);
 
    struct Awaiter

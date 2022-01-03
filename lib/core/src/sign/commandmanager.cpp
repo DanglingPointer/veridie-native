@@ -34,10 +34,7 @@ int64_t Manager::FutureResponse::await_resume() const
    const auto it = m_mgr.m_pendingCmds.find(m_id);
    if (it == std::end(m_mgr.m_pendingCmds))
       return ICommand::INTEROP_FAILURE;
-
-   const int64_t response = it->second.response;
-   m_mgr.m_pendingCmds.erase(it);
-   return response;
+   return it->second.response;
 }
 
 Manager::Manager(std::unique_ptr<IExternalInvoker> uiInvoker,
@@ -55,8 +52,7 @@ Manager::~Manager()
         it = m_pendingCmds.begin()) {
       if (it->second.callback)
          it->second.callback();
-      else
-         m_pendingCmds.erase(it);
+      m_pendingCmds.erase(it);
    }
 }
 
@@ -98,13 +94,10 @@ void Manager::SubmitResponse(int32_t cmdId, int64_t response)
       Log::Warning(TAG, "cmd::Manager received response to a non-existing command, ID = {}", cmdId);
       return;
    }
-   if (!it->second.callback) {
-      m_pendingCmds.erase(it);
-      Log::Info(TAG, "cmd::Manager received an orphaned response, ID = {}", cmdId);
-      return;
-   }
    it->second.response = response;
-   it->second.callback();
+   if (it->second.callback)
+      it->second.callback();
+   m_pendingCmds.erase(it);
 }
 
 } // namespace cmd
