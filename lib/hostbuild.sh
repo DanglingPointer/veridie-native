@@ -8,7 +8,7 @@ fi
 
 cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -Dveridie_build_tests=ON \
-  #-DCMAKE_CXX_COMPILER=clang++-12
+  -DCMAKE_CXX_COMPILER=clang++-12
 cmake --build . && ctest -VV
 
 ## GDB debugging on target (android):
