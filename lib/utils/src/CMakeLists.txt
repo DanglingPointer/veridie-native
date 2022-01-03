@@ -10,6 +10,7 @@ add_library(veridie-utils
         include/utils/poolptr.hpp
         include/utils/task.hpp
         include/utils/taskowner.hpp
+        include/utils/taskutils.hpp
         )
 
 target_compile_features(veridie-utils
