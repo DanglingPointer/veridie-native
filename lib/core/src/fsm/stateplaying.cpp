@@ -119,7 +119,7 @@ void StatePlaying::RemotePeerManager::OnReceptionFailure()
 cr::TaskHandle<void> StatePlaying::RemotePeerManager::SendRequestToGenerator(std::string request)
 {
    for (unsigned attempt = REQUEST_ATTEMPTS; attempt > 0; --attempt) {
-      co_await StartNestedTask(Send(request));
+      co_await Send(request);
       co_await m_timer.WaitFor(1s);
       if (!m_pendingRequest)
          co_return;

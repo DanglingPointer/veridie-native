@@ -104,7 +104,7 @@ cr::TaskHandle<void> StateNegotiating::StartNegotiation()
 
    switch (response) {
    case Response::OK:
-      co_await StartNestedTask(UpdateAndBroadcastOffer());
+      co_await UpdateAndBroadcastOffer();
       break;
    case Response::INTEROP_FAILURE:
    case Response::INVALID_STATE:
@@ -167,7 +167,7 @@ cr::TaskHandle<void> StateNegotiating::SendOffer(std::string offer, bt::Device r
 
    switch (response) {
    case Response::SOCKET_ERROR:
-      co_await StartNestedTask(DisconnectDevice(receiver.mac));
+      co_await DisconnectDevice(receiver.mac);
       [[fallthrough]];
    case Response::CONNECTION_NOT_FOUND:
       m_peers.erase(receiver);

@@ -126,7 +126,7 @@ cr::TaskHandle<void> StateConnecting::SendHelloTo(std::string mac)
          OnDeviceDisconnected(bt::Device{"", mac});
       else if (response == Response::SOCKET_ERROR) {
          m_peers.erase(bt::Device{"", mac});
-         co_await StartNestedTask(DisconnectDevice(mac));
+         co_await DisconnectDevice(mac);
       }
 
    } while (--retriesLeft > 0 && response == Response::INVALID_STATE);
