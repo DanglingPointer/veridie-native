@@ -171,7 +171,7 @@ struct Promise
    };
 
    bool canceled = false;
-   stdcr::coroutine_handle<> outerHandle = nullptr;
+   stdcr::coroutine_handle<> parentHandle = nullptr;
 
    const E & Executor() const noexcept { return static_cast<const E &>(*this); }
    E & Executor() noexcept { return static_cast<E &>(*this); }
@@ -225,8 +225,8 @@ struct Promise
          bool await_ready() const noexcept { return p.canceled; }
          void await_suspend(stdcr::coroutine_handle<>) noexcept
          {
-            if (p.outerHandle)
-               p.Execute(p.outerHandle);
+            if (p.parentHandle)
+               p.Execute(p.parentHandle);
          }
          void await_resume() const noexcept {}
       };
@@ -291,7 +291,7 @@ auto TaskHandle<T, E>::Run(E executor)
       handle_type handle;
 
       bool await_ready() const noexcept { return handle.done(); }
-      void await_suspend(stdcr::coroutine_handle<> h) { handle.promise().outerHandle = h; }
+      void await_suspend(stdcr::coroutine_handle<> h) { handle.promise().parentHandle = h; }
       T await_resume()
       {
          if (std::holds_alternative<std::exception_ptr>(handle.promise().value))
